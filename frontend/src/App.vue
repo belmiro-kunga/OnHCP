@@ -1,10 +1,12 @@
 <template>
-  <div id="app">
-    <header class="header">
-      <h1>OnHCP - Sistema de Onboarding</h1>
+  <div id="app" class="min-h-screen bg-gray-50">
+    <header class="bg-primary-600 text-white shadow-lg">
+      <div class="container mx-auto px-4 py-6">
+        <h1 class="text-3xl font-bold text-center">OnHCP - Sistema de Onboarding</h1>
+      </div>
     </header>
-    <main>
-      <router-view />
+    <main class="container mx-auto px-4 py-8">
+      <router-view></router-view>
     </main>
   </div>
 </template>
@@ -14,27 +16,3 @@ export default {
   name: 'App'
 }
 </script>
-
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: #2c3e50;
-}
-
-.header {
-  background-color: #42b883;
-  color: white;
-  padding: 1rem;
-  text-align: center;
-}
-
-.header h1 {
-  margin: 0;
-}
-
-main {
-  padding: 2rem;
-}
-</style>

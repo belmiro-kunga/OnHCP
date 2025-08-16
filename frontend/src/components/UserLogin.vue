@@ -6,7 +6,7 @@
           OnHCP - Login de Usuário
         </h2>
         <p class="mt-2 text-sm text-gray-600">
-          Acesse sua conta de profissional de saúde
+          Aceda à sua conta de profissional de saúde
         </p>
       </div>
     </div>
@@ -24,7 +24,7 @@
               type="email"
               required
               class="form-input"
-              placeholder="seu@email.com"
+              placeholder="o.seu@email.com"
             />
           </div>
 
@@ -38,7 +38,7 @@
               type="password"
               required
               class="form-input"
-              placeholder="Sua senha"
+              placeholder="A sua palavra-passe"
             />
           </div>
 
@@ -50,15 +50,15 @@
                 type="checkbox"
                 class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
-              <label for="remember" class="ml-2 block text-sm text-gray-900">
-                Lembrar de mim
-              </label>
+              <label for="remember" class="ml-2 block text-sm text-gray-700">
+              Lembrar-me
+            </label>
             </div>
 
             <div class="text-sm">
               <a href="#" class="font-medium text-primary-600 hover:text-primary-500">
-                Esqueceu a senha?
-              </a>
+              Esqueceu-se da palavra-passe?
+            </a>
             </div>
           </div>
 
@@ -68,7 +68,7 @@
               :disabled="loading"
               class="btn-primary w-full"
             >
-              {{ loading ? 'Entrando...' : 'Entrar' }}
+              {{ loading ? 'A entrar...' : 'Entrar' }}
             </button>
           </div>
 
@@ -113,7 +113,7 @@ export default {
         
         this.loginStatus = {
           success: true,
-          message: 'Login realizado com sucesso!'
+          message: 'Sessão iniciada com sucesso!'
         }
         
         // Redirecionar para o painel do usuário após 1 segundo
@@ -124,7 +124,7 @@ export default {
       } catch (error) {
         this.loginStatus = {
           success: false,
-          message: 'Erro no login. Verifique suas credenciais.'
+          message: 'Erro no início de sessão. Verifique as suas credenciais.'
         }
       } finally {
         this.loading = false

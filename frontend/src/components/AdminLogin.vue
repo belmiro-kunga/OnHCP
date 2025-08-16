@@ -21,7 +21,7 @@
         <form @submit.prevent="handleAdminLogin" class="space-y-6">
           <div>
             <label for="admin-email" class="form-label">
-              Email do Administrador
+              E-mail do Administrador
             </label>
             <input
               id="admin-email"
@@ -29,13 +29,13 @@
               type="email"
               required
               class="form-input"
-              placeholder="admin@onhcp.com"
+              placeholder="admin@hospital.com"
             />
           </div>
 
           <div>
             <label for="admin-password" class="form-label">
-              Senha
+              Palavra-passe
             </label>
             <input
               id="admin-password"
@@ -43,13 +43,13 @@
               type="password"
               required
               class="form-input"
-              placeholder="Senha do administrador"
+              placeholder="Palavra-passe do administrador"
             />
           </div>
 
           <div>
             <label for="admin-code" class="form-label">
-              Código de Acesso
+              Código de Segurança
             </label>
             <input
               id="admin-code"
@@ -71,7 +71,7 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              {{ loading ? 'Verificando...' : 'Acessar Painel' }}
+              {{ loading ? 'A verificar...' : 'Aceder ao Painel' }}
             </button>
           </div>
 
@@ -80,7 +80,7 @@
               to="/"
               class="text-sm text-primary-600 hover:text-primary-500"
             >
-              ← Voltar ao Login de Usuário
+              ← Voltar ao Início de Sessão de Utilizador
             </router-link>
           </div>
         </form>
@@ -125,7 +125,7 @@ export default {
         if (this.form.accessCode === 'ADMIN2024') {
           this.loginStatus = {
             success: true,
-            message: 'Acesso autorizado! Redirecionando...'
+            message: 'Acesso autorizado! A redirecionar...'
           }
           
           // Redirecionar para o painel admin após 1 segundo

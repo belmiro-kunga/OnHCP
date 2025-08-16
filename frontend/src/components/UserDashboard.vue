@@ -5,7 +5,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center py-4">
           <div class="flex items-center">
-            <h1 class="text-2xl font-bold text-gray-900">Painel do Usuário</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Painel do Utilizador</h1>
           </div>
           <div class="flex items-center space-x-4">
             <span class="text-sm text-gray-600">Bem-vindo, Dr. João Silva</span>
@@ -78,7 +78,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Progresso do Onboarding -->
         <div class="card">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Progresso do Onboarding</h3>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Progresso da Integração</h3>
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-700">Informações Pessoais</span>
@@ -125,7 +125,7 @@
                 <div class="w-2 h-2 bg-blue-400 rounded-full"></div>
               </div>
               <div class="ml-3">
-                <p class="text-sm font-medium text-gray-900">Completar Treinamento de Segurança</p>
+                <p class="text-sm font-medium text-gray-900">Completar Formação de Segurança</p>
                 <p class="text-xs text-gray-600">Prazo: 5 dias</p>
               </div>
             </div>
@@ -152,7 +152,7 @@
               Enviar Documento
             </button>
             <button class="btn-secondary">
-              Ver Treinamentos
+              Ver Formações
             </button>
             <button class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
               Agendar Reunião

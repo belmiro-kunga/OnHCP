@@ -47,19 +47,7 @@
             />
           </div>
 
-          <div>
-            <label for="admin-code" class="form-label">
-              Código de Segurança
-            </label>
-            <input
-              id="admin-code"
-              v-model="form.accessCode"
-              type="text"
-              required
-              class="form-input"
-              placeholder="Código de segurança"
-            />
-          </div>
+          <!-- Campo opcional removido: validação agora é feita no backend -->
 
           <div>
             <button
@@ -99,6 +87,8 @@
 </template>
 
 <script>
+import { useAuth } from '@/composables/useAuth'
+
 export default {
   name: 'AdminLogin',
   data() {
@@ -107,8 +97,7 @@ export default {
       loginStatus: null,
       form: {
         email: '',
-        password: '',
-        accessCode: ''
+        password: ''
       }
     }
   },
@@ -116,33 +105,16 @@ export default {
     async handleAdminLogin() {
       this.loading = true
       this.loginStatus = null
-      
       try {
-        // Simular verificação de admin
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        // Verificação básica (em produção seria via API)
-        if (this.form.accessCode === 'ADMIN2024') {
-          this.loginStatus = {
-            success: true,
-            message: 'Acesso autorizado! A redirecionar...'
-          }
-          
-          // Redirecionar para o painel admin após 1 segundo
-          setTimeout(() => {
-            this.$router.push('/admin/dashboard')
-          }, 1000)
-        } else {
-          this.loginStatus = {
-            success: false,
-            message: 'Código de acesso inválido. Acesso negado.'
-          }
-        }
-        
+        const { login } = useAuth()
+        await login(this.form.email, this.form.password)
+        this.loginStatus = { success: true, message: 'Acesso autorizado! A redirecionar...' }
+        const redirect = this.$route.query.redirect || '/admin/dashboard/overview'
+        this.$router.replace(redirect)
       } catch (error) {
         this.loginStatus = {
           success: false,
-          message: 'Erro no sistema. Tente novamente.'
+          message: error?.message || 'Credenciais inválidas'
         }
       } finally {
         this.loading = false

@@ -107,13 +107,8 @@
   
   /* Sidebar Styles */
   .sidebar {
-    @apply w-64 bg-primary text-white min-h-screen;
-  }
-  
-  @media (max-width: 640px) {
-    .sidebar {
-      @apply w-56;
-    }
+    /* Width is controlled by component classes to support collapse/expand */
+    @apply bg-primary text-white min-h-screen;
   }
   
   .sidebar-item {

@@ -11,6 +11,18 @@
           <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
         </svg>
       </button>
+
+      <!-- Collapse Toggle (desktop) -->
+      <button 
+        @click="toggleCollapse"
+        class="hidden lg:inline-flex p-2 rounded-md hover:bg-gray-100 transition-colors"
+        aria-label="Alternar menu"
+        title="Alternar menu"
+      >
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+          <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+        </svg>
+      </button>
       
       <!-- Search Input -->
       <div class="relative hidden md:block">
@@ -61,8 +73,9 @@
         </div>
         <button 
           @click="handleLogout" 
-          class="text-text-secondary hover:text-error transition-colors hidden sm:block"
+          class="text-text-secondary hover:text-error transition-colors"
           aria-label="Logout"
+          title="Sair"
         >
           <svg class="w-4 h-4 lg:w-5 lg:h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"></path>
@@ -81,7 +94,7 @@ import { useNavigation } from '../../composables/useNavigation.js'
 export default {
   name: 'AdminTopbar',
   setup() {
-    const { toggleSidebar } = useSidebar()
+    const { toggleSidebar, toggleCollapse } = useSidebar()
     const { logout } = useNavigation()
     
     const searchQuery = ref('')
@@ -111,6 +124,7 @@ export default {
       hasNotifications,
       user,
       toggleSidebar,
+      toggleCollapse,
       toggleMobileSearch,
       toggleNotifications,
       handleLogout

@@ -4,14 +4,20 @@
     <AdminSidebar />
 
     <!-- Main Content Area -->
-    <div class="flex-1 lg:ml-64 transition-all duration-300 ease-in-out">
+    <div :class="['flex-1 min-w-0 transition-all duration-300 ease-in-out', sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64']">
       <!-- Topbar Component -->
       <AdminTopbar />
 
       <!-- Dashboard Content -->
-      <main class="p-4 lg:p-6">
-        <!-- Dynamic Module Loading -->
-        <component :is="currentComponent" />
+      <main class="p-4 lg:p-6 overflow-x-hidden">
+        <!-- Dynamic Module Loading with Permission Gate -->
+        <div v-if="isAllowed">
+          <component :is="currentComponent" />
+        </div>
+        <div v-else class="p-8 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          <h3 class="text-lg font-semibold mb-2">Acesso negado</h3>
+          <p>Você não possui permissões para acessar esta secção.</p>
+        </div>
       </main>
     </div>
   </div>
@@ -19,8 +25,10 @@
 
 <script>
 import { computed, onMounted, watch } from 'vue'
+import { useSidebar } from '../composables/useSidebar.js'
 import { useRouter } from 'vue-router'
 import { useNavigation } from '../composables/useNavigation.js'
+import { usePermissions } from '../composables/usePermissions'
 import AdminSidebar from './layout/AdminSidebar.vue'
 import AdminTopbar from './layout/AdminTopbar.vue'
 
@@ -32,7 +40,8 @@ import AdminOnboarding from './modules/AdminOnboarding.vue'
 import AdminCursos from './modules/AdminCursos.vue'
 import AdminGamificacao from './modules/AdminGamificacao.vue'
 import AdminCertificados from './modules/AdminCertificados.vue'
-import AdminReports from './modules/AdminReports.vue'
+import AdminAudit from './modules/AdminAudit.vue'
+import AdminSecurity from './modules/AdminSecurity.vue'
 
 export default {
   name: 'AdminDashboard',
@@ -46,11 +55,14 @@ export default {
     AdminCursos,
     AdminGamificacao,
     AdminCertificados,
-    AdminReports
+    AdminAudit,
+    AdminSecurity
   },
   setup() {
     const { activeTab, selectMenuItem } = useNavigation()
+    const { sidebarCollapsed } = useSidebar()
     const router = useRouter()
+    const { can } = usePermissions()
 
     // Mapeamento dos componentes baseado na aba ativa
     const componentMap = {
@@ -61,11 +73,30 @@ export default {
       cursos: 'AdminCursos',
       gamificacao: 'AdminGamificacao',
       certificados: 'AdminCertificados',
-      reports: 'AdminReports'
+      audit: 'AdminAudit',
+      security: 'AdminSecurity'
+    }
+
+    // Mapeamento de permissões por aba
+    const permissionMap = {
+      overview: ['admin.dashboard.view'],
+      users: ['users.view'],
+      simulado: ['admin.dashboard.view'],
+      onboarding: ['admin.dashboard.view'],
+      cursos: ['admin.dashboard.view'],
+      gamificacao: ['admin.dashboard.view'],
+      certificados: ['admin.dashboard.view'],
+      audit: ['audit.view'],
+      security: ['security.view']
     }
 
     const currentComponent = computed(() => {
-      return componentMap[activeTab.value] || 'AdminOverview'
+      return componentMap[activeTab.value] || 'AdminUsers'
+    })
+
+    const isAllowed = computed(() => {
+      const perms = permissionMap[activeTab.value] || []
+      return perms.every((p) => can(p))
     })
 
     // Sincronizar aba ativa com a rota atual
@@ -77,7 +108,7 @@ export default {
       if (section && componentMap[section]) {
         activeTab.value = section
       } else {
-        activeTab.value = 'overview'
+        activeTab.value = 'users'
       }
     }
 
@@ -92,7 +123,9 @@ export default {
     })
 
     return {
-      currentComponent
+      currentComponent,
+      isAllowed,
+      sidebarCollapsed
     }
   }
 }

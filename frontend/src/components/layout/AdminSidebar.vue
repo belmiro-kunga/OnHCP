@@ -8,8 +8,11 @@
 
   <!-- Sidebar -->
   <aside :class="[
-    'sidebar fixed left-0 top-0 h-full z-50 transition-transform duration-300 ease-in-out',
-    sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+    'sidebar fixed left-0 top-0 h-full z-50 transition-transform duration-300 ease-in-out w-56',
+    // Slide-in behavior on mobile
+    sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+    // Width control on desktop
+    sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
   ]">
     <!-- Logo Section -->
     <div class="flex items-center px-4 lg:px-6 py-4 lg:py-6 border-b border-primary-700">
@@ -37,10 +40,11 @@
           @click="handleMenuItemClick(item.id)"
           :class="[
             'sidebar-item w-full text-left mb-1 rounded-md flex items-center',
+            !shouldShowMenuText ? 'justify-center' : '',
             activeTab === item.id ? 'active' : ''
           ]"
         >
-          <component :is="item.icon" class="w-5 h-5 mr-3 flex-shrink-0" />
+          <component :is="iconMap[item.icon] || item.icon" :class="['w-5 h-5 flex-shrink-0', shouldShowMenuText ? 'mr-3' : 'mx-auto']" />
           <span class="truncate" :class="shouldShowMenuText ? 'inline' : 'hidden'">
             {{ item.name }}
           </span>
@@ -56,6 +60,7 @@ import { useNavigation } from '../../composables/useNavigation.js'
 import {
   IconDashboard,
   IconUsers,
+  IconShield,
   IconClipboard,
   IconUserPlus,
   IconBook,
@@ -69,6 +74,7 @@ export default {
   components: {
     IconDashboard,
     IconUsers,
+    IconShield,
     IconClipboard,
     IconUserPlus,
     IconBook,
@@ -77,8 +83,21 @@ export default {
     IconChart
   },
   setup() {
-    const { sidebarOpen, shouldShowMenuText, closeSidebar } = useSidebar()
+    const { sidebarOpen, sidebarCollapsed, shouldShowMenuText, closeSidebar } = useSidebar()
     const { activeTab, menuItems, selectMenuItem } = useNavigation()
+
+    // Mapear nomes de ícones (strings) para componentes importados
+    const iconMap = {
+      IconDashboard,
+      IconUsers,
+      IconShield,
+      IconClipboard,
+      IconUserPlus,
+      IconBook,
+      IconTrophy,
+      IconAward,
+      IconChart
+    }
 
     const handleMenuItemClick = (tabId) => {
       selectMenuItem(tabId)
@@ -90,9 +109,11 @@ export default {
 
     return {
       sidebarOpen,
+      sidebarCollapsed,
       shouldShowMenuText,
       activeTab,
       menuItems,
+      iconMap,
       closeSidebar,
       handleMenuItemClick
     }

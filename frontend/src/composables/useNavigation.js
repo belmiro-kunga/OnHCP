@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuth } from './useAuth'
 
 // Estado global para garantir que todos os componentes compartilhem a mesma instância
 const globalActiveTab = ref('overview')
@@ -12,11 +13,6 @@ export function useNavigation() {
   const activeTab = globalActiveTab
 
   const menuItems = ref([
-    { 
-      id: 'overview', 
-      name: 'Visão Geral',
-      icon: 'IconDashboard'
-    },
     { 
       id: 'users', 
       name: 'Utilizadores',
@@ -47,10 +43,16 @@ export function useNavigation() {
       name: 'Certificados',
       icon: 'IconAward'
     },
+    
     { 
-      id: 'reports', 
-      name: 'Relatórios',
-      icon: 'IconChart'
+      id: 'audit', 
+      name: 'Auditoria',
+      icon: 'IconShield'
+    },
+    {
+      id: 'security',
+      name: 'Segurança',
+      icon: 'IconShield'
     }
   ])
 
@@ -64,7 +66,10 @@ export function useNavigation() {
   }
 
   const logout = () => {
-    // Implementar lógica de logout aqui
+    const { logout: authLogout } = useAuth()
+    // Limpar autenticação
+    authLogout()
+    // Redirecionar para página de login
     router.push('/admin/login')
   }
 

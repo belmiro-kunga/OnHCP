@@ -103,3 +103,49 @@ export function useAuth() {
     setToken,
   }
 }
+
+// Backend API helpers for Authentication & Access management
+// Stats
+export async function getAuthStats() {
+  const res = await api.get('/auth/stats')
+  // Support multiple possible shapes
+  return res?.data?.data || res?.data || {}
+}
+
+// Methods
+export async function getAuthMethods() {
+  const res = await api.get('/auth/methods')
+  return res?.data?.data || res?.data || []
+}
+
+export async function createAuthMethod(payload) {
+  const res = await api.post('/auth/methods', payload)
+  return res?.data?.data || res?.data
+}
+
+export async function toggleAuthMethod(id, enabled) {
+  const res = await api.patch(`/auth/methods/${id}`, { enabled })
+  return res?.data?.data || res?.data
+}
+
+// Sessions
+export async function getSessions() {
+  const res = await api.get('/auth/sessions')
+  return res?.data?.data || res?.data || []
+}
+
+export async function forceLogoutSession(sessionId) {
+  const res = await api.post(`/auth/sessions/${sessionId}/terminate`)
+  return res?.data?.data || res?.data
+}
+
+// Security Settings
+export async function getSecuritySettings() {
+  const res = await api.get('/auth/settings')
+  return res?.data?.data || res?.data || {}
+}
+
+export async function saveSecuritySettings(payload) {
+  const res = await api.put('/auth/settings', payload)
+  return res?.data?.data || res?.data
+}

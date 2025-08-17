@@ -72,6 +72,102 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+
+    // Development stubs for frontend integration
+    Route::middleware('auth:sanctum')->group(function () {
+        // Stats
+        Route::get('/stats', function () {
+            return response()->json([
+                'totalUsers' => 42,
+                'activeSessions' => 3,
+                'mfaEnabledUsers' => 8,
+                'lastLogin' => now()->toISOString(),
+            ]);
+        });
+
+        // Authentication methods
+        Route::get('/methods', function () {
+            return response()->json([
+                ['id' => 1, 'name' => 'Email/Senha', 'key' => 'password', 'enabled' => true],
+                ['id' => 2, 'name' => 'Google SSO', 'key' => 'google', 'enabled' => false],
+                ['id' => 3, 'name' => 'Microsoft SSO', 'key' => 'microsoft', 'enabled' => false],
+            ]);
+        });
+        Route::post('/methods', function (Request $request) {
+            return response()->json(['id' => rand(100, 999), ...$request->all()]);
+        });
+        Route::patch('/methods/{id}', function ($id, Request $request) {
+            return response()->json(['id' => (int)$id, 'enabled' => (bool)$request->input('enabled', true)]);
+        });
+
+        // Sessions
+        Route::get('/sessions', function () {
+            return response()->json([
+                ['id' => 'sess_1', 'userId' => 1, 'ip' => '127.0.0.1', 'agent' => 'Chrome', 'lastActivity' => now()->toISOString()],
+                ['id' => 'sess_2', 'userId' => 1, 'ip' => '192.168.1.10', 'agent' => 'Safari', 'lastActivity' => now()->subMinutes(5)->toISOString()],
+            ]);
+        });
+        Route::post('/sessions/{id}/terminate', function ($id) {
+            return response()->json(['terminated' => (string)$id]);
+        });
+
+        // Security settings
+        Route::get('/settings', function () {
+            return response()->json([
+                'passwordPolicy' => [
+                    'minLength' => 8,
+                    'requireUppercase' => true,
+                    'requireLowercase' => true,
+                    'requireNumbers' => true,
+                    'requireSpecial' => false,
+                    'passwordExpiryDays' => 90,
+                ],
+                'sessionManagement' => [
+                    'sessionTimeoutMinutes' => 30,
+                    'maxConcurrentSessions' => 3,
+                    'rememberMeDays' => 7,
+                    'invalidateOnPasswordChange' => true,
+                ],
+                'mfa' => [
+                    'enabled' => false,
+                    'requiredForAdmins' => true,
+                    'methods' => ['totp'],
+                ],
+                'accountLockout' => [
+                    'enabled' => true,
+                    'threshold' => 5,
+                    'lockoutMinutes' => 15,
+                ],
+            ]);
+        });
+        Route::put('/settings', function (Request $request) {
+            // Basic, lenient validation example
+            $data = $request->all();
+            $errors = [];
+            $pp = $data['passwordPolicy'] ?? [];
+            if (isset($pp['minLength']) && (!is_int($pp['minLength']) || $pp['minLength'] < 6)) {
+                $errors['passwordPolicy']['minLength'] = 'O comprimento mínimo deve ser >= 6';
+            }
+            $sm = $data['sessionManagement'] ?? [];
+            if (isset($sm['sessionTimeoutMinutes']) && (!is_int($sm['sessionTimeoutMinutes']) || $sm['sessionTimeoutMinutes'] < 5)) {
+                $errors['sessionManagement']['sessionTimeoutMinutes'] = 'Timeout deve ser >= 5 minutos';
+            }
+            $al = $data['accountLockout'] ?? [];
+            if (isset($al['threshold']) && (!is_int($al['threshold']) || $al['threshold'] < 3)) {
+                $errors['accountLockout']['threshold'] = 'Limite deve ser >= 3';
+            }
+
+            if (!empty($errors)) {
+                return response()->json([
+                    'message' => 'Validação falhou',
+                    'errors' => $errors,
+                ], 422);
+            }
+
+            // Echo back what was "saved"
+            return response()->json($data);
+        });
+    });
 });
 
 // Users (protected)

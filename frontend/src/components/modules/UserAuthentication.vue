@@ -1,5 +1,13 @@
 <template>
   <div class="space-y-6">
+    <!-- Toasts -->
+    <div class="fixed top-4 right-4 z-50 space-y-2">
+      <div v-for="(t, i) in toasts" :key="i" class="flex items-center px-4 py-2 rounded shadow text-white"
+           :class="t.type === 'success' ? 'bg-green-600' : 'bg-red-600'">
+        <span class="mr-2">{{ t.type === 'success' ? '✔️' : '⚠️' }}</span>
+        <span>{{ t.message }}</span>
+      </div>
+    </div>
     <!-- Header -->
     <div class="flex justify-between items-center">
       <h3 class="text-lg font-semibold text-gray-900">Autenticação e Acesso</h3>
@@ -136,7 +144,7 @@
     <div class="card">
       <div class="flex justify-between items-center mb-4">
         <h4 class="text-md font-semibold text-gray-900">Sessões Ativas</h4>
-        <button @click="refreshSessions" class="btn-secondary text-sm">
+        <button @click="refreshSessions" class="btn-secondary text-sm" :disabled="loading.sessions">
           Atualizar
         </button>
       </div>
@@ -159,12 +167,12 @@
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-8 w-8">
                     <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span class="text-xs font-medium text-gray-700">{{ session.user.name.charAt(0) }}</span>
+                      <span class="text-xs font-medium text-gray-700">{{ (session.user && session.user.name) ? session.user.name.charAt(0) : '?' }}</span>
                     </div>
                   </div>
                   <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">{{ session.user.name }}</div>
-                    <div class="text-sm text-gray-500">{{ session.user.email }}</div>
+                    <div class="text-sm font-medium text-gray-900">{{ (session.user && session.user.name) ? session.user.name : '—' }}</div>
+                    <div class="text-sm text-gray-500">{{ (session.user && session.user.email) ? session.user.email : '' }}</div>
                   </div>
                 </div>
               </td>
@@ -173,7 +181,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ session.startTime }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ session.lastActivity }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button @click="forceLogout(session)" class="text-red-600 hover:text-red-900">
+                <button @click="requestForceLogout(session)" class="text-red-600 hover:text-red-900">
                   Forçar Logout
                 </button>
               </td>
@@ -221,31 +229,37 @@
     </div>
 
     <!-- Security Settings Modal -->
-    <div v-if="showSecuritySettings" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-10 mx-auto p-5 border w-2/3 max-w-4xl shadow-lg rounded-md bg-white">
+    <div v-if="showSecuritySettings" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+         @click.self="closeSecurityModal"
+         role="dialog" aria-modal="true" aria-labelledby="securitySettingsTitle">
+      <div class="relative top-10 mx-auto p-5 border w-2/3 max-w-4xl shadow-lg rounded-md bg-white" tabindex="-1" ref="securityModal">
         <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Configurações de Segurança</h3>
+          <h3 id="securitySettingsTitle" class="text-lg font-medium text-gray-900 mb-4">Configurações de Segurança</h3>
           
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div v-if="loading.securitySettings" class="py-10 text-center text-sm text-gray-600">A carregar configurações...</div>
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Password Policy -->
             <div class="space-y-4">
               <h4 class="font-medium text-gray-900">Política de Senhas</h4>
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Comprimento mínimo</label>
-                  <input v-model="securitySettings.passwordPolicy.minLength" type="number" class="w-20 form-input text-sm" />
+                  <div>
+                    <input v-model.number="securitySettings.passwordPolicy.minLength" type="number" class="w-20 form-input text-sm" :disabled="loading.saveSettings || loading.securitySettings" />
+                    <p v-if="formErrors.passwordPolicy && formErrors.passwordPolicy.minLength" class="text-xs text-red-600 mt-1">{{ formErrors.passwordPolicy.minLength }}</p>
+                  </div>
                 </div>
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Exigir maiúsculas</label>
-                  <input v-model="securitySettings.passwordPolicy.requireUppercase" type="checkbox" class="form-checkbox" />
+                  <input v-model="securitySettings.passwordPolicy.requireUppercase" type="checkbox" class="form-checkbox" :disabled="loading.saveSettings || loading.securitySettings" />
                 </div>
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Exigir números</label>
-                  <input v-model="securitySettings.passwordPolicy.requireNumbers" type="checkbox" class="form-checkbox" />
+                  <input v-model="securitySettings.passwordPolicy.requireNumbers" type="checkbox" class="form-checkbox" :disabled="loading.saveSettings || loading.securitySettings" />
                 </div>
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Exigir símbolos</label>
-                  <input v-model="securitySettings.passwordPolicy.requireSymbols" type="checkbox" class="form-checkbox" />
+                  <input v-model="securitySettings.passwordPolicy.requireSymbols" type="checkbox" class="form-checkbox" :disabled="loading.saveSettings || loading.securitySettings" />
                 </div>
               </div>
             </div>
@@ -256,15 +270,21 @@
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Timeout de sessão (min)</label>
-                  <input v-model="securitySettings.sessionManagement.timeout" type="number" class="w-20 form-input text-sm" />
+                  <div>
+                    <input v-model.number="securitySettings.sessionManagement.timeout" type="number" class="w-20 form-input text-sm" :disabled="loading.saveSettings || loading.securitySettings" />
+                    <p v-if="formErrors.sessionManagement && formErrors.sessionManagement.timeout" class="text-xs text-red-600 mt-1">{{ formErrors.sessionManagement.timeout }}</p>
+                  </div>
                 </div>
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Máx. sessões simultâneas</label>
-                  <input v-model="securitySettings.sessionManagement.maxSessions" type="number" class="w-20 form-input text-sm" />
+                  <div>
+                    <input v-model.number="securitySettings.sessionManagement.maxSessions" type="number" class="w-20 form-input text-sm" :disabled="loading.saveSettings || loading.securitySettings" />
+                    <p v-if="formErrors.sessionManagement && formErrors.sessionManagement.maxSessions" class="text-xs text-red-600 mt-1">{{ formErrors.sessionManagement.maxSessions }}</p>
+                  </div>
                 </div>
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Logout automático</label>
-                  <input v-model="securitySettings.sessionManagement.autoLogout" type="checkbox" class="form-checkbox" />
+                  <input v-model="securitySettings.sessionManagement.autoLogout" type="checkbox" class="form-checkbox" :disabled="loading.saveSettings || loading.securitySettings" />
                 </div>
               </div>
             </div>
@@ -275,15 +295,18 @@
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">MFA obrigatório</label>
-                  <input v-model="securitySettings.mfa.required" type="checkbox" class="form-checkbox" />
+                  <input v-model="securitySettings.mfa.required" type="checkbox" class="form-checkbox" :disabled="loading.saveSettings || loading.securitySettings" />
                 </div>
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Métodos permitidos</label>
-                  <select v-model="securitySettings.mfa.allowedMethods" multiple class="form-input text-sm">
+                  <div>
+                    <select v-model="securitySettings.mfa.allowedMethods" multiple class="form-input text-sm" :disabled="loading.saveSettings || loading.securitySettings">
                     <option value="sms">SMS</option>
                     <option value="email">Email</option>
                     <option value="app">App Autenticador</option>
-                  </select>
+                    </select>
+                    <p v-if="formErrors.mfa && formErrors.mfa.allowedMethods" class="text-xs text-red-600 mt-1">{{ formErrors.mfa.allowedMethods }}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -294,22 +317,69 @@
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Tentativas máximas</label>
-                  <input v-model="securitySettings.accountLockout.maxAttempts" type="number" class="w-20 form-input text-sm" />
+                  <div>
+                    <input v-model.number="securitySettings.accountLockout.maxAttempts" type="number" class="w-20 form-input text-sm" :disabled="loading.saveSettings || loading.securitySettings" />
+                    <p v-if="formErrors.accountLockout && formErrors.accountLockout.maxAttempts" class="text-xs text-red-600 mt-1">{{ formErrors.accountLockout.maxAttempts }}</p>
+                  </div>
                 </div>
                 <div class="flex items-center justify-between">
                   <label class="text-sm text-gray-700">Duração bloqueio (min)</label>
-                  <input v-model="securitySettings.accountLockout.lockoutDuration" type="number" class="w-20 form-input text-sm" />
+                  <div>
+                    <input v-model.number="securitySettings.accountLockout.lockoutDuration" type="number" class="w-20 form-input text-sm" :disabled="loading.saveSettings || loading.securitySettings" />
+                    <p v-if="formErrors.accountLockout && formErrors.accountLockout.lockoutDuration" class="text-xs text-red-600 mt-1">{{ formErrors.accountLockout.lockoutDuration }}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="flex justify-end space-x-3 mt-6">
-            <button type="button" @click="showSecuritySettings = false" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            <button
+              type="button"
+              @click="closeSecurityModal"
+              :class="[
+                'px-4 py-2 rounded-md bg-gray-300 text-gray-700',
+                (loading.saveSettings || loading.securitySettings)
+                  ? 'opacity-50 cursor-not-allowed pointer-events-none'
+                  : 'hover:bg-gray-400'
+              ]"
+              :disabled="loading.saveSettings || loading.securitySettings"
+              :aria-disabled="(loading.saveSettings || loading.securitySettings) ? 'true' : 'false'"
+              :title="(loading.saveSettings || loading.securitySettings) ? 'Aguarde…' : 'Cancelar'"
+            >
               Cancelar
             </button>
-            <button @click="saveSecuritySettings" class="btn-primary">
-              Guardar Configurações
+            <button
+              type="button"
+              @click="saveSecuritySettings"
+              :class="[
+                'btn-primary',
+                (loading.saveSettings || loading.securitySettings) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+              ]"
+              :disabled="loading.saveSettings || loading.securitySettings"
+              :aria-disabled="(loading.saveSettings || loading.securitySettings) ? 'true' : 'false'"
+              :title="loading.saveSettings ? 'A guardar…' : ((loading.securitySettings) ? 'Aguarde…' : 'Guardar Configurações')"
+            >
+              {{ loading.saveSettings ? 'A guardar...' : 'Guardar Configurações' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Force Logout Modal -->
+    <div v-if="showForceLogoutModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-32 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Confirmar Logout</h3>
+          <p class="text-sm text-gray-600 mb-4">
+            Tem a certeza que pretende forçar o logout de
+            <strong>{{ (forceLogoutTarget && forceLogoutTarget.user && forceLogoutTarget.user.name) ? forceLogoutTarget.user.name : '' }}</strong>?
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button @click="cancelForceLogout" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Cancelar</button>
+            <button @click="confirmForceLogout" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" :disabled="loading.forceLogout">
+              {{ loading.forceLogout ? 'A terminar...' : 'Confirmar' }}
             </button>
           </div>
         </div>
@@ -319,18 +389,33 @@
 </template>
 
 <script>
+import { getAuthStats, getAuthMethods, createAuthMethod, toggleAuthMethod,
+         getSessions, forceLogoutSession, getSecuritySettings, saveSecuritySettings } from '@/composables/useAuth'
 export default {
   name: 'UserAuthentication',
   data() {
     return {
       showAddAuthMethod: false,
       showSecuritySettings: false,
+      showForceLogoutModal: false,
+      forceLogoutTarget: null,
       methodFilter: '',
       newAuthMethod: {
         type: '',
         name: '',
         description: ''
       },
+      loading: {
+        stats: false,
+        methods: false,
+        sessions: false,
+        saveSettings: false,
+        securitySettings: false,
+        addMethod: false,
+        toggleMethod: {},
+        forceLogout: false,
+      },
+      toasts: [],
       authStats: {
         traditional: 156,
         mfa: 89,
@@ -429,8 +514,21 @@ export default {
           maxAttempts: 5,
           lockoutDuration: 15
         }
-      }
+      },
+      formErrors: {
+        passwordPolicy: {},
+        sessionManagement: {},
+        mfa: {},
+        accountLockout: {}
+      },
+      securitySettingsOriginal: null,
     }
+  },
+  mounted() {
+    this.bootstrap()
+  },
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.onEsc)
   },
   computed: {
     filteredAuthMethods() {
@@ -438,7 +536,72 @@ export default {
       return this.authMethods.filter(method => method.type === this.methodFilter)
     }
   },
+  watch: {
+    showSecuritySettings(val) {
+      if (val) {
+        // snapshot for dirty check and prepare UI
+        this.securitySettingsOriginal = JSON.parse(JSON.stringify(this.securitySettings))
+        this.formErrors = { passwordPolicy: {}, sessionManagement: {}, mfa: {}, accountLockout: {} }
+        this.$nextTick(() => {
+          document.addEventListener('keydown', this.onEsc)
+          if (this.$refs.securityModal) {
+            this.$refs.securityModal.focus()
+          }
+        })
+      } else {
+        document.removeEventListener('keydown', this.onEsc)
+      }
+    }
+  },
   methods: {
+    async bootstrap() {
+      await Promise.all([
+        this.fetchStats(),
+        this.fetchMethods(),
+        this.refreshSessions(),
+        this.fetchSecuritySettings(),
+      ])
+    },
+    // Toast helpers
+    showSuccess(msg) { this.pushToast(msg, 'success') },
+    showError(msg) { this.pushToast(msg, 'error') },
+    pushToast(message, type) {
+      const t = { message, type }
+      this.toasts.push(t)
+      setTimeout(() => {
+        const idx = this.toasts.indexOf(t)
+        if (idx !== -1) this.toasts.splice(idx, 1)
+      }, 3500)
+    },
+
+    async fetchStats() {
+      this.loading.stats = true
+      try {
+        const stats = await getAuthStats()
+        // Map keys if needed
+        this.authStats = {
+          traditional: stats.traditional ?? stats.password ?? 0,
+          mfa: stats.mfa ?? stats.two_factor ?? 0,
+          sso: stats.sso ?? stats.social ?? 0,
+        }
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao carregar estatísticas')
+      } finally {
+        this.loading.stats = false
+      }
+    },
+    async fetchMethods() {
+      this.loading.methods = true
+      try {
+        const methods = await getAuthMethods()
+        // Expect an array of {id,name,type,description,enabled,userCount,lastUpdated}
+        this.authMethods = Array.isArray(methods) ? methods : []
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao carregar métodos')
+      } finally {
+        this.loading.methods = false
+      }
+    },
     getMethodIconClass(type) {
       const classes = {
         password: 'bg-blue-100 text-blue-600',
@@ -466,40 +629,148 @@ export default {
       }
       return labels[type] || 'Outro'
     },
-    addAuthMethod() {
-      const newId = Math.max(...this.authMethods.map(m => m.id)) + 1
-      this.authMethods.push({
-        id: newId,
-        ...this.newAuthMethod,
-        enabled: false,
-        userCount: 0,
-        lastUpdated: new Date().toLocaleDateString('pt-PT')
-      })
-      this.newAuthMethod = { type: '', name: '', description: '' }
-      this.showAddAuthMethod = false
+    async addAuthMethod() {
+      // validação
+      if (!this.newAuthMethod.type || !this.newAuthMethod.name?.trim()) {
+        return this.showError('Tipo e Nome são obrigatórios')
+      }
+      this.loading.addMethod = true
+      try {
+        await createAuthMethod(this.newAuthMethod)
+        this.showSuccess('Método criado com sucesso')
+        this.showAddAuthMethod = false
+        this.newAuthMethod = { type: '', name: '', description: '' }
+        await this.fetchMethods()
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao criar método')
+      } finally {
+        this.loading.addMethod = false
+      }
     },
     configureMethod(method) {
       console.log('Configurar método:', method)
       // Implementar configuração específica do método
     },
-    toggleMethod(method) {
-      method.enabled = !method.enabled
-      method.lastUpdated = new Date().toLocaleDateString('pt-PT')
-    },
-    refreshSessions() {
-      console.log('Atualizando sessões ativas...')
-      // Implementar refresh das sessões
-    },
-    forceLogout(session) {
-      if (confirm(`Forçar logout de ${session.user.name}?`)) {
-        this.activeSessions = this.activeSessions.filter(s => s.id !== session.id)
-        console.log('Logout forçado:', session)
+    async toggleMethod(method) {
+      const targetState = !method.enabled
+      this.$set ? this.$set(this.loading.toggleMethod, method.id, true) : (this.loading.toggleMethod[method.id] = true)
+      try {
+        await toggleAuthMethod(method.id, targetState)
+        method.enabled = targetState
+        method.lastUpdated = new Date().toLocaleDateString('pt-PT')
+        this.showSuccess(`Método ${targetState ? 'ativado' : 'desativado'}`)
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao atualizar método')
+      } finally {
+        this.$set ? this.$set(this.loading.toggleMethod, method.id, false) : (this.loading.toggleMethod[method.id] = false)
       }
     },
-    saveSecuritySettings() {
-      console.log('Configurações de segurança salvas:', this.securitySettings)
+    async refreshSessions() {
+      this.loading.sessions = true
+      try {
+        const sessions = await getSessions()
+        this.activeSessions = Array.isArray(sessions) ? sessions : []
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao carregar sessões')
+      } finally {
+        this.loading.sessions = false
+      }
+    },
+    requestForceLogout(session) {
+      this.forceLogoutTarget = session
+      this.showForceLogoutModal = true
+    },
+    cancelForceLogout() {
+      this.forceLogoutTarget = null
+      this.showForceLogoutModal = false
+    },
+    async confirmForceLogout() {
+      if (!this.forceLogoutTarget?.id) return this.cancelForceLogout()
+      this.loading.forceLogout = true
+      try {
+        await forceLogoutSession(this.forceLogoutTarget.id)
+        this.activeSessions = this.activeSessions.filter(s => s.id !== this.forceLogoutTarget.id)
+        this.showSuccess('Sessão terminada com sucesso')
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao terminar sessão')
+      } finally {
+        this.loading.forceLogout = false
+        this.cancelForceLogout()
+      }
+    },
+    async fetchSecuritySettings() {
+      this.loading.securitySettings = true
+      try {
+        const s = await getSecuritySettings()
+        // Normalize and merge with defaults to avoid undefined bindings in template
+        const defaults = {
+          passwordPolicy: { minLength: 8, requireUppercase: true, requireNumbers: true, requireSymbols: true },
+          sessionManagement: { timeout: 30, maxSessions: 3, autoLogout: true },
+          mfa: { required: false, allowedMethods: [] },
+          accountLockout: { maxAttempts: 5, lockoutDuration: 15 },
+        }
+        const incoming = (s && typeof s === 'object') ? s : {}
+        const normalized = {
+          passwordPolicy: { ...defaults.passwordPolicy, ...(incoming.passwordPolicy || {}) },
+          sessionManagement: { ...defaults.sessionManagement, ...(incoming.sessionManagement || {}) },
+          mfa: { ...defaults.mfa, ...(incoming.mfa || {}) },
+          accountLockout: { ...defaults.accountLockout, ...(incoming.accountLockout || {}) },
+        }
+        // Ensure allowedMethods is always an array for <select multiple v-model>
+        if (!Array.isArray(normalized.mfa.allowedMethods)) {
+          normalized.mfa.allowedMethods = []
+        }
+        this.securitySettings = normalized
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao carregar configurações de segurança')
+      } finally {
+        this.loading.securitySettings = false
+      }
+    },
+    onEsc(e) {
+      if (e.key === 'Escape') this.closeSecurityModal()
+    },
+    closeSecurityModal() {
+      if (this.loading.saveSettings || this.loading.securitySettings) return
+      const dirty = this.securitySettingsOriginal && JSON.stringify(this.securitySettings) !== JSON.stringify(this.securitySettingsOriginal)
+      if (dirty) {
+        this.showError('Existem alterações por guardar.')
+        return
+      }
       this.showSecuritySettings = false
-      // Implementar salvamento das configurações
+    },
+    async saveSecuritySettings() {
+      // validações simples
+      const p = this.securitySettings.passwordPolicy
+      const sm = this.securitySettings.sessionManagement
+      const al = this.securitySettings.accountLockout
+      if ((p?.minLength ?? 0) < 6) return this.showError('Comprimento mínimo de senha deve ser ≥ 6')
+      if ((sm?.timeout ?? 0) < 5) return this.showError('Timeout de sessão deve ser ≥ 5')
+      if ((sm?.maxSessions ?? 0) < 1) return this.showError('Máx. sessões deve ser ≥ 1')
+      if ((al?.maxAttempts ?? 0) < 1) return this.showError('Tentativas máximas deve ser ≥ 1')
+
+      this.loading.saveSettings = true
+      try {
+        this.formErrors = { passwordPolicy: {}, sessionManagement: {}, mfa: {}, accountLockout: {} }
+        await saveSecuritySettings(this.securitySettings)
+        this.showSuccess('Configurações salvas')
+        this.showSecuritySettings = false
+        this.securitySettingsOriginal = JSON.parse(JSON.stringify(this.securitySettings))
+      } catch (e) {
+        const resp = e?.response?.data
+        if (resp?.errors && typeof resp.errors === 'object') {
+          // Mapear erros de validação por campo, se vierem estruturados
+          this.formErrors = {
+            passwordPolicy: resp.errors.passwordPolicy || {},
+            sessionManagement: resp.errors.sessionManagement || {},
+            mfa: resp.errors.mfa || {},
+            accountLockout: resp.errors.accountLockout || {}
+          }
+        }
+        this.showError(resp?.message || 'Falha ao salvar configurações')
+      } finally {
+        this.loading.saveSettings = false
+      }
     }
   }
 }

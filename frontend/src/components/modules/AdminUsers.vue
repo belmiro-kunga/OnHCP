@@ -95,104 +95,6 @@
       </nav>
     </div>
 
-    <!-- Edit User Modal -->
-    <div v-if="showEditUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50" @click.self="showEditUserModal = false">
-      <div class="mx-4 sm:mx-6 w-full max-w-5xl border shadow-lg rounded-lg bg-white p-4 sm:p-5">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-base sm:text-lg font-medium text-gray-900">Editar Utilizador</h3>
-            <button type="button" @click="showEditUserModal = false" class="text-gray-400 hover:text-gray-600" aria-label="Fechar">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <form @submit.prevent="saveEditedUser">
-            <!-- Informações Básicas -->
-            <div class="mb-4">
-              <h4 class="font-medium text-gray-900 border-b pb-1 mb-3">Informações Básicas</h4>
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div class="md:col-span-7">
-                  <label class="form-label">Nome Completo <span class="text-red-500">*</span></label>
-                  <input v-model="editedUser.name" type="text" class="form-input" required placeholder="Digite o nome completo" />
-                </div>
-                <div class="md:col-span-5">
-                  <label class="form-label">Email <span class="text-red-500">*</span></label>
-                  <input v-model="editedUser.email" type="email" class="form-input" required placeholder="exemplo@hospital.com" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Dados Profissionais -->
-            <div class="mb-4">
-              <h4 class="font-medium text-gray-900 border-b pb-1 mb-3">Dados Profissionais</h4>
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div class="md:col-span-4">
-                  <label class="form-label">Cargo <span class="text-red-500">*</span></label>
-                  <select v-model="editedUser.role_id" class="form-input" required>
-                    <option value="">Selecione um cargo</option>
-                    <option 
-                      v-for="role in availableRoles" 
-                      :key="role.value" 
-                      :value="role.value"
-                    >
-                      {{ role.label }}
-                    </option>
-                  </select>
-                </div>
-                <div class="md:col-span-4">
-                  <label class="form-label">Departamento <span class="text-red-500">*</span></label>
-                  <select v-model="editedUser.department_id" class="form-input" required>
-                    <option value="">Selecione um departamento</option>
-                    <option 
-                      v-for="department in availableDepartments" 
-                      :key="department.value" 
-                      :value="department.value"
-                    >
-                      {{ department.label }}
-                    </option>
-                  </select>
-                </div>
-                <div class="md:col-span-2">
-                  <label class="form-label">Data de Início</label>
-                  <input v-model="editedUser.startDate" type="date" class="form-input" />
-                </div>
-                <div class="md:col-span-2">
-                  <label class="form-label">Estado</label>
-                  <select v-model="editedUser.status" class="form-input" required>
-                    <option value="Ativo">Ativo</option>
-                    <option value="Pendente">Pendente</option>
-                    <option value="Inativo">Inativo</option>
-                    <option value="Bloqueado">Bloqueado</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- Dados Pessoais -->
-            <div class="mb-4">
-              <h4 class="font-medium text-gray-900 border-b pb-1 mb-3">Dados Pessoais</h4>
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <div class="md:col-span-4">
-                  <label class="form-label">Telefone</label>
-                  <input v-model="editedUser.phone" type="tel" class="form-input" placeholder="+351 912 345 678" />
-                </div>
-              </div>
-            </div>
-
-            <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
-              <button type="button" @click="showEditUserModal = false" class="px-3 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 w-full sm:w-auto">
-                Cancelar
-              </button>
-              <button type="submit" class="btn-primary w-full sm:w-auto">
-                Guardar Alterações
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
     <!-- Users Management Tab -->
     <div v-if="activeTab === 'users'" class="card">
       <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
@@ -367,7 +269,7 @@
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.email }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.role }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ displayEntityName(user.role) }}</td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span :class="[
                 'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
@@ -836,10 +738,10 @@
                     <option value="">Selecione um cargo</option>
                     <option 
                       v-for="role in availableRoles" 
-                      :key="role.value" 
-                      :value="role.value"
+                      :key="String(role.value)" 
+                      :value="String(role.value)"
                     >
-                      {{ role.label }}
+                      {{ displayOptionLabel(role) }}
                     </option>
                   </select>
                 </div>
@@ -849,10 +751,10 @@
                     <option value="">Selecione um departamento</option>
                     <option 
                       v-for="department in availableDepartments" 
-                      :key="department.value" 
-                      :value="department.value"
+                      :key="String(department.value)" 
+                      :value="String(department.value)"
                     >
-                      {{ department.label }}
+                      {{ displayOptionLabel(department) }}
                     </option>
                   </select>
                 </div>
@@ -893,6 +795,108 @@
               </button>
               <button type="submit" class="btn-primary w-full sm:w-auto">
                 Adicionar Utilizador
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div v-if="showEditUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50" @click.self="showEditUserModal = false">
+      <div class="mx-4 sm:mx-6 w-full max-w-5xl border shadow-lg rounded-lg bg-white p-4 sm:p-5">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base sm:text-lg font-medium text-gray-900">Editar Utilizador</h3>
+            <button type="button" @click="showEditUserModal = false" class="text-gray-400 hover:text-gray-600" aria-label="Fechar">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <form @submit.prevent="saveEditedUser">
+            <!-- Informações Básicas -->
+            <div class="mb-4">
+              <h4 class="font-medium text-gray-900 border-b pb-1 mb-3">Informações Básicas</h4>
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div class="md:col-span-7">
+                  <label class="form-label">Nome Completo <span class="text-red-500">*</span></label>
+                  <input v-model="editUserForm.name" type="text" class="form-input" required placeholder="Digite o nome completo" />
+                </div>
+                <div class="md:col-span-5">
+                  <label class="form-label">Email <span class="text-red-500">*</span></label>
+                  <input v-model="editUserForm.email" type="email" class="form-input" required placeholder="exemplo@hospital.com" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Dados Profissionais -->
+            <div class="mb-4">
+              <h4 class="font-medium text-gray-900 border-b pb-1 mb-3">Dados Profissionais</h4>
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div class="md:col-span-4">
+                  <label class="form-label">Cargo <span class="text-red-500">*</span></label>
+                  <select v-model="editUserForm.role_id" class="form-input" required>
+                    <option value="">Selecione um cargo</option>
+                    <option 
+                      v-for="role in availableRoles" 
+                      :key="role.value" 
+                      :value="String(role.value)"
+                    >
+                      {{ displayOptionLabel(role) }}
+                    </option>
+                  </select>
+                </div>
+                <div class="md:col-span-4">
+                  <label class="form-label">Departamento <span class="text-red-500">*</span></label>
+                  <select v-model="editUserForm.department_id" class="form-input" required>
+                    <option value="">Selecione um departamento</option>
+                    <option 
+                      v-for="department in availableDepartments" 
+                      :key="department.value" 
+                      :value="String(department.value)"
+                    >
+                      {{ displayOptionLabel(department) }}
+                    </option>
+                  </select>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="form-label">Data de Início</label>
+                  <input v-model="editUserForm.startDate" type="date" class="form-input" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="form-label">Estado</label>
+                  <select v-model="editUserForm.status" class="form-input" required>
+                    <option value="Ativo">Ativo</option>
+                    <option value="Pendente">Pendente</option>
+                    <option value="Inativo">Inativo</option>
+                    <option value="Bloqueado">Bloqueado</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dados Pessoais -->
+            <div class="mb-4">
+              <h4 class="font-medium text-gray-900 border-b pb-1 mb-3">Dados Pessoais</h4>
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div class="md:col-span-4">
+                  <label class="form-label">Data de Nascimento</label>
+                  <input v-model="editUserForm.birthDate" type="date" class="form-input" />
+                </div>
+                <div class="md:col-span-4">
+                  <label class="form-label">Telefone</label>
+                  <input v-model="editUserForm.phone" type="tel" class="form-input" placeholder="+351 912 345 678" />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
+              <button type="button" @click="showEditUserModal = false" class="px-3 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 w-full sm:w-auto">
+                Cancelar
+              </button>
+              <button type="submit" class="btn-primary w-full sm:w-auto">
+                Guardar Alterações
               </button>
             </div>
           </form>
@@ -991,7 +995,7 @@
               </div>
               <div class="flex-1">
                 <h4 class="text-xl font-semibold text-gray-900">{{ selectedUser.name }}</h4>
-                <p class="text-gray-600">{{ selectedUser.role }} - {{ selectedUser.department }}</p>
+                <p class="text-gray-600">{{ displayEntityName(selectedUser.role) }} - {{ displayEntityName(selectedUser.department) }}</p>
                 <div class="flex items-center space-x-4 mt-2">
                   <span :class="[
                     'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
@@ -1103,7 +1107,7 @@
                 <tr v-for="request in registrationRequests" :key="request.id">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ request.name }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ request.email }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ request.role }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ displayEntityName(request.role) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ request.requestDate }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex space-x-2">
@@ -1294,11 +1298,22 @@ export default {
       currentPage: 1,
       itemsPerPage: 10,
       showAddUserModal: false,
-      showEditUserModal: false,
       showBulkActions: false,
       showPasswordRecoverySettings: false,
       showPermissionsModal: false,
       showUsersManagementModal: false,
+      showEditUserModal: false,
+      editUserForm: {
+        id: null,
+        name: '',
+        email: '',
+        role_id: '',
+        department_id: '',
+        status: 'Pendente',
+        birthDate: '',
+        phone: '',
+        startDate: ''
+      },
       newUser: {
         name: '',
         email: '',
@@ -1309,16 +1324,6 @@ export default {
         department_id: '',
         startDate: '',
         avatar: null
-      },
-      editedUser: {
-        id: null,
-        name: '',
-        email: '',
-        role_id: '',
-        department_id: '',
-        phone: '',
-        status: 'Pendente',
-        startDate: '',
       },
       showImportModal: false,
       showUserProfile: false,
@@ -1488,10 +1493,9 @@ export default {
     }
   },
   async mounted() {
-    await Promise.all([
-      this.fetchUsers(),
-      this.loadRolesAndDepartments()
-    ])
+    // Carregar utilizadores imediatamente; opções em background para não atrasar renderização
+    this.fetchUsers()
+    this.loadRolesAndDepartments()
   },
   computed: {
     filteredUsers() {
@@ -1633,15 +1637,35 @@ export default {
           this.getDepartmentOptions()
         ])
         
-        this.availableRoles = rolesResponse.map(role => ({
-          value: role.id,
-          label: role.name
-        }))
+        this.availableRoles = rolesResponse.map((r) => {
+          const id = r?.id ?? r?.value ?? r?.role_id
+          const rawLabel = (typeof r?.name === 'string')
+            ? r.name
+            : (typeof r?.label === 'string')
+              ? r.label
+              : (typeof r?.title === 'string')
+                ? r.title
+                : ''
+          return {
+            value: id !== undefined && id !== null ? String(id) : '',
+            label: this.stripHtml(String(rawLabel))
+          }
+        })
         
-        this.availableDepartments = departmentsResponse.map(department => ({
-          value: department.id,
-          label: department.name
-        }))
+        this.availableDepartments = departmentsResponse.map((d) => {
+          const id = d?.id ?? d?.value ?? d?.department_id
+          const rawLabel = (typeof d?.name === 'string')
+            ? d.name
+            : (typeof d?.label === 'string')
+              ? d.label
+              : (typeof d?.title === 'string')
+                ? d.title
+                : ''
+          return {
+            value: id !== undefined && id !== null ? String(id) : '',
+            label: this.stripHtml(String(rawLabel))
+          }
+        })
       } catch (e) {
         console.error('Erro ao carregar cargos e departamentos:', e)
       }
@@ -1667,25 +1691,48 @@ export default {
         console.error('Erro ao adicionar utilizador:', e)
       }
     },
-    async editUser(user) {
+    editUser(user) {
+      // Map role/department to IDs if needed
+      let roleId = user.role_id
+      if (!roleId && user.role && this.availableRoles?.length) {
+        const plainRole = this.displayEntityName(user.role)
+        const r = this.availableRoles.find(x => x.label === plainRole)
+        roleId = r ? r.value : ''
+      }
+      let departmentId = user.department_id
+      if (!departmentId && user.department && this.availableDepartments?.length) {
+        const plainDept = this.displayEntityName(user.department)
+        const d = this.availableDepartments.find(x => x.label === plainDept)
+        departmentId = d ? d.value : ''
+      }
+
+      this.editUserForm = {
+        id: user.id,
+        name: user.name || '',
+        email: user.email || '',
+        role_id: roleId !== undefined && roleId !== null && roleId !== '' ? String(roleId) : '',
+        department_id: departmentId !== undefined && departmentId !== null && departmentId !== '' ? String(departmentId) : '',
+        status: user.status || 'Pendente',
+        birthDate: user.birthDate || '',
+        phone: user.phone || '',
+        startDate: user.startDate || ''
+      }
+      this.showEditUserModal = true
+    },
+
+    async saveEditedUser() {
       try {
-        // Carregar detalhes completos
-        const res = await this.getUser(user.id)
-        const u = res?.data || res || user
-        this.editedUser = {
-          id: u.id,
-          name: u.name || '',
-          email: u.email || '',
-          role_id: u.role_id ?? u.role?.id ?? u.roleId ?? '',
-          department_id: u.department_id ?? u.department?.id ?? u.departmentId ?? '',
-          phone: u.phone || '',
-          status: u.status || 'Pendente',
-          startDate: u.startDate || u.start_date || '',
-        }
-        this.showEditUserModal = true
+        const { id, ...payload } = this.editUserForm
+        if (!id) return
+        if (!payload.name || !payload.email) return
+        // basic requireds
+        if (!payload.role_id || !payload.department_id) return
+
+        await this.updateUser(id, payload)
+        await this.fetchUsers()
+        this.showEditUserModal = false
       } catch (e) {
-        console.error('Erro ao carregar utilizador para edição:', e)
-        alert('Não foi possível carregar os dados do utilizador.')
+        console.error('Erro ao atualizar utilizador:', e)
       }
     },
     
@@ -1694,80 +1741,21 @@ export default {
       try {
         await this.apiDeleteUser(user.id)
         await this.fetchUsers()
-        alert('Utilizador eliminado com sucesso.')
-      } catch (e) {
-        console.error('Erro ao eliminar utilizador:', e)
-        alert('Falha ao eliminar o utilizador.')
-      }
+      } catch (e) {}
     },
     async toggleMFA(user) {
       try {
         if (user.mfaEnabled) {
-          if (!confirm(`Desativar MFA para ${user.name}?`)) return
           await this.disableMfa(user.id)
           user.mfaEnabled = false
-          alert('MFA desativado.')
         } else {
-          if (!confirm(`Ativar MFA para ${user.name}?`)) return
           await this.enableMfa(user.id)
           user.mfaEnabled = true
-          alert('MFA ativado.')
         }
-      } catch (e) {
-        console.error('Erro ao alternar MFA:', e)
-        alert('Falha ao alterar o estado do MFA.')
-      }
+      } catch (e) {}
     },
     async resetPassword(user) {
-      if (!confirm(`Resetar a senha de ${user.name}?`)) return
-      try {
-        await this.apiResetPassword(user.id)
-        alert('Instruções de redefinição de senha enviadas.')
-      } catch (e) {
-        console.error('Erro ao resetar senha:', e)
-        alert('Falha ao resetar a senha.')
-      }
-    },
-    // Validação do formulário de edição (cargo e departamento)
-    validateEditedRoleAndDepartment() {
-      const isValidRole = this.availableRoles.some(role => role.value === this.editedUser.role_id)
-      const isValidDepartment = this.availableDepartments.some(dept => dept.value === this.editedUser.department_id)
-
-      if (!isValidRole && this.editedUser.role_id) {
-        console.warn('Cargo inválido:', this.editedUser.role_id)
-        alert('Selecione um cargo válido.')
-        return false
-      }
-
-      if (!isValidDepartment && this.editedUser.department_id) {
-        console.warn('Departamento inválido:', this.editedUser.department_id)
-        alert('Selecione um departamento válido.')
-        return false
-      }
-
-      return true
-    },
-    async saveEditedUser() {
-      try {
-        if (!this.editedUser.id) return
-        if (!this.validateEditedRoleAndDepartment()) return
-        const payload = {
-          name: this.editedUser.name,
-          email: this.editedUser.email,
-          role_id: this.editedUser.role_id,
-          department_id: this.editedUser.department_id,
-          phone: this.editedUser.phone || undefined,
-          status: this.editedUser.status,
-          startDate: this.editedUser.startDate || undefined,
-        }
-        await this.updateUser(this.editedUser.id, payload)
-        await this.fetchUsers()
-        this.showEditUserModal = false
-        alert('Utilizador atualizado com sucesso.')
-      } catch (e) {
-        console.error('Erro ao guardar alterações:', e)
-        alert('Falha ao atualizar o utilizador.')
-      }
+      try { await this.apiResetPassword(user.id) } catch (e) {}
     },
     // Bulk Actions Methods
     async bulkAction(action) {
@@ -2006,7 +1994,79 @@ export default {
       }
 
       return true
+    },
+    // Normalizar valor vindo do backend (string/JSON/objeto) para exibir somente o nome
+    displayEntityName(value) {
+      try {
+        if (value == null) return ''
+        // Se já for string
+        if (typeof value === 'string') {
+          const trimmed = value.trim()
+          // Detectar JSON em string
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            try {
+              const parsed = JSON.parse(trimmed)
+              const name = parsed?.name ?? parsed?.label ?? parsed?.title ?? parsed?.description ?? ''
+              return this.stripHtml(String(name || ''))
+            } catch (_) {
+              return this.stripHtml(value)
+            }
+          }
+          return this.stripHtml(value)
+        }
+        // Se for objeto
+        if (typeof value === 'object') {
+          const name = value?.name ?? value?.label ?? value?.title ?? value?.description ?? ''
+          return this.stripHtml(String(name || ''))
+        }
+        // Outros tipos
+        return this.stripHtml(String(value))
+      } catch (_) {
+        return ''
+      }
+    },
+
+    // Normalizar e sanitizar rótulos de opções (evita aparecer JSON/objetos na UI)
+    displayOptionLabel(option) {
+      try {
+        if (option == null) return ''
+        // Fonte do label
+        const labelSource = option.label ?? option.name ?? option.title ?? option.description ?? ''
+        // Se já for string
+        if (typeof labelSource === 'string') {
+          const trimmed = labelSource.trim()
+          // Tentar detectar JSON em string
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            try {
+              const parsed = JSON.parse(trimmed)
+              const fromParsed = parsed?.name ?? parsed?.label ?? parsed?.title ?? parsed?.description ?? ''
+              return this.stripHtml(String(fromParsed || ''))
+            } catch (_) {
+              // Se não parsear, retornar versão sanitizada da string original
+              return this.stripHtml(labelSource)
+            }
+          }
+          return this.stripHtml(labelSource)
+        }
+        // Se for objeto
+        if (typeof labelSource === 'object' && labelSource !== null) {
+          const fromObj = labelSource.name ?? labelSource.label ?? labelSource.title ?? labelSource.description ?? ''
+          return this.stripHtml(String(fromObj || ''))
+        }
+        // Outros tipos: coagir para string e sanitizar
+        return this.stripHtml(String(labelSource))
+      } catch (_) {
+        return ''
+      }
+    },
+
+    // Utilitário: remover HTML/SVG de strings
+    stripHtml(value) {
+      if (typeof value !== 'string') return value
+      const tmp = document.createElement('div')
+      tmp.innerHTML = value
+      return (tmp.textContent || tmp.innerText || '').trim()
     }
-   }
- }
+  }
+}
 </script>

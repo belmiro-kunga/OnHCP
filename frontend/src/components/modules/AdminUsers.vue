@@ -34,7 +34,7 @@
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
-          Recuperação de Senhas
+          🔑 Recuperação de Senhas
         </button>
         <button
           @click="activeTab = 'enterprise'; loadEnterprise()"
@@ -93,6 +93,79 @@
           Relatórios
         </button>
       </nav>
+    </div>
+
+    <!-- Bulk Delete Confirmation Modal -->
+    <div v-if="showBulkDeleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50" @click.self="cancelBulkDelete">
+      <div class="mx-4 sm:mx-6 w-full max-w-md border shadow-lg rounded-lg bg-white p-4 sm:p-5">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base sm:text-lg font-medium text-gray-900">Confirmar Exclusão em Massa</h3>
+            <button type="button" @click="cancelBulkDelete" class="text-gray-400 hover:text-gray-600" aria-label="Fechar">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <p class="text-sm text-gray-700">
+            Tem a certeza que deseja eliminar <span class="font-semibold">{{ bulkDeleteIds.length }}</span> contas selecionadas?
+          </p>
+          <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
+            <button type="button" @click="cancelBulkDelete" class="px-3 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 w-full sm:w-auto">
+              Cancelar
+            </button>
+            <button type="button" @click="confirmBulkDelete" class="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 w-full sm:w-auto">
+              Eliminar Contas
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="fixed top-4 right-4 z-[60] space-y-2">
+      <div v-for="t in toasts" :key="t.id" :class="[
+        'rounded shadow px-4 py-2 text-sm flex items-start gap-2 max-w-xs',
+        t.type === 'success' ? 'bg-green-600 text-white' :
+        t.type === 'error' ? 'bg-red-600 text-white' :
+        t.type === 'warning' ? 'bg-yellow-500 text-gray-900' : 'bg-gray-800 text-white'
+      ]">
+        <span v-if="t.type === 'success'">✅</span>
+        <span v-else-if="t.type === 'error'">❌</span>
+        <span v-else-if="t.type === 'warning'">⚠️</span>
+        <span v-else>ℹ️</span>
+        <div class="flex-1">{{ t.message }}</div>
+        <button @click="removeToast(t.id)" class="ml-2 text-white/80 hover:text-white">✖</button>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50" @click.self="cancelDelete">
+      <div class="mx-4 sm:mx-6 w-full max-w-md border shadow-lg rounded-lg bg-white p-4 sm:p-5">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base sm:text-lg font-medium text-gray-900">Confirmar Exclusão</h3>
+            <button type="button" @click="cancelDelete" class="text-gray-400 hover:text-gray-600" aria-label="Fechar">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <p class="text-sm text-gray-700">
+            Tem a certeza que deseja eliminar a conta
+            <span class="font-semibold">{{ deleteTargetUser?.name }}</span>
+            ({{ deleteTargetUser?.email }})?
+          </p>
+          <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
+            <button type="button" @click="cancelDelete" class="px-3 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 w-full sm:w-auto">
+              Cancelar
+            </button>
+            <button type="button" @click="confirmDelete" class="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 w-full sm:w-auto">
+              Eliminar Conta
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Users Management Tab -->
@@ -220,16 +293,62 @@
           </button>
           <button 
             v-if="can('users.manage', { targetUser: { attributes: { department: user.department, branch: 'HQ' } } })"
-            @click="resetPassword(user)" 
+            @click="openChangePassword(user)" 
             class="btn-secondary text-xs">
-            Reset Senha
+            🔑 Reset Senha
           </button>
           <button 
             v-if="can('users.manage', { targetUser: { attributes: { department: user.department, branch: 'HQ' } } })"
-            @click="deleteUser(user)" 
+            @click="requestDelete(user)" 
             class="btn-secondary text-xs text-red-700">
             Excluir
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div v-if="showChangePasswordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-600 bg-opacity-50" @click.self="showChangePasswordModal = false">
+      <div class="mx-4 sm:mx-6 w-full max-w-md border shadow-lg rounded-lg bg-white p-4 sm:p-5">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base sm:text-lg font-medium text-gray-900">Alterar Senha</h3>
+            <button type="button" @click="showChangePasswordModal = false" class="text-gray-400 hover:text-gray-600" aria-label="Fechar">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="mb-4 text-sm text-gray-700">
+            <div class="font-medium">{{ changePasswordForm.name }}</div>
+            <div class="text-gray-500">{{ changePasswordForm.email }}</div>
+          </div>
+
+          <form @submit.prevent="saveChangedPassword">
+            <div class="space-y-4">
+              <div>
+                <label class="form-label">Nova Senha <span class="text-red-500">*</span></label>
+                <input v-model="changePasswordForm.password" type="password" class="form-input" required minlength="6" placeholder="Digite a nova senha" />
+              </div>
+              <div>
+                <label class="form-label">Confirmar Senha <span class="text-red-500">*</span></label>
+                <input v-model="changePasswordForm.confirm" type="password" class="form-input" required minlength="6" placeholder="Confirme a nova senha" />
+              </div>
+              <p v-if="changePasswordForm.password && changePasswordForm.confirm && changePasswordForm.password !== changePasswordForm.confirm" class="text-xs text-red-600">
+                As senhas não coincidem.
+              </p>
+            </div>
+
+            <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4">
+              <button type="button" @click="showChangePasswordModal = false" class="px-3 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 w-full sm:w-auto">
+                Cancelar
+              </button>
+              <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="!changePasswordForm.password || changePasswordForm.password !== changePasswordForm.confirm">
+                Guardar Senha
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -319,16 +438,14 @@
                 </button>
                 <button 
                   v-if="can('users.manage', { targetUser: { attributes: { department: user.department, branch: 'HQ' } } })"
-                  @click="resetPassword(user)" 
+                  @click="openChangePassword(user)" 
                   class="text-yellow-600 hover:text-yellow-900" 
                   title="Reset Senha">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2m0 0H9a2 2 0 00-2 2v0"></path>
-                  </svg>
+                  <span class="text-base">🔑</span>
                 </button>
                 <button 
                   v-if="can('users.manage', { targetUser: { attributes: { department: user.department, branch: 'HQ' } } })"
-                  @click="deleteUser(user)" 
+                  @click="requestDelete(user)" 
                   class="text-red-600 hover:text-red-900" 
                   title="Excluir">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -365,7 +482,7 @@
     <!-- Password Recovery Tab -->
     <div v-if="activeTab === 'security'" class="card">
       <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-semibold text-gray-900">Recuperação e Redefinição de Senhas</h3>
+        <h3 class="text-lg font-semibold text-gray-900">🔑 Recuperação e Redefinição de Senhas</h3>
         <button @click="showPasswordRecoverySettings = true" class="btn-primary">
           Configurações
         </button>
@@ -381,7 +498,8 @@
             </div>
             <div class="p-3 bg-blue-100 rounded-full">
               <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2m0 0H9a2 2 0 00-2 2v0"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 5.25a4.5 4.5 0 11-6.364 6.364 4.5 4.5 0 016.364-6.364z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 10.5L12 18m0 0H9m3 0v-3" />
               </svg>
             </div>
           </div>
@@ -601,22 +719,27 @@
     <div v-if="showBulkActions" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click.self="showBulkActions = false">
       <div class="relative top-20 mx-auto p-5 border w-full max-w-md sm:max-w-lg shadow-lg rounded-md bg-white mx-4">
         <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Ações em Massa</h3>
-          <div class="space-y-4">
-            <button @click="bulkAction('activate')" class="w-full btn-primary text-left">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Ações em Massa</h3>
+          <p class="text-sm text-gray-600 mb-4">Selecionados: {{ users.filter(u => u.selected).length }}</p>
+          <div class="space-y-3">
+            <button @click="bulkAction('activate')" class="w-full btn-primary text-left disabled:opacity-60 disabled:cursor-not-allowed" :disabled="!users.some(u => u.selected)">
               Ativar Utilizadores Selecionados
             </button>
-            <button @click="bulkAction('deactivate')" class="w-full btn-secondary text-left">
+            <button @click="bulkAction('deactivate')" class="w-full btn-secondary text-left disabled:opacity-60 disabled:cursor-not-allowed" :disabled="!users.some(u => u.selected)">
               Desativar Utilizadores Selecionados
             </button>
-            <button @click="bulkAction('resetPassword')" class="w-full btn-secondary text-left">
+            <button @click="bulkAction('resetPassword')" class="w-full btn-secondary text-left disabled:opacity-60 disabled:cursor-not-allowed" :disabled="!users.some(u => u.selected)">
               Forçar Reset de Senha
             </button>
-            <button @click="bulkAction('enableMFA')" class="w-full btn-secondary text-left">
+            <button @click="bulkAction('enableMFA')" class="w-full btn-secondary text-left disabled:opacity-60 disabled:cursor-not-allowed" :disabled="!users.some(u => u.selected)">
               Ativar MFA
             </button>
-            <button @click="bulkAction('export')" class="w-full btn-secondary text-left">
+            <button @click="bulkAction('export')" class="w-full btn-secondary text-left disabled:opacity-60 disabled:cursor-not-allowed" :disabled="!users.some(u => u.selected)">
               Exportar Dados
+            </button>
+            <hr class="my-2" />
+            <button @click="bulkAction('delete')" class="w-full text-left px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed" :disabled="!users.some(u => u.selected)">
+              Eliminar Utilizadores Selecionados
             </button>
           </div>
           <div class="flex justify-end space-x-3 mt-6">
@@ -1303,6 +1426,20 @@ export default {
       showPermissionsModal: false,
       showUsersManagementModal: false,
       showEditUserModal: false,
+      showChangePasswordModal: false,
+      showDeleteConfirmModal: false,
+      deleteTargetUser: null,
+      showBulkDeleteConfirmModal: false,
+      bulkDeleteIds: [],
+      toasts: [],
+      nextToastId: 1,
+      changePasswordForm: {
+        id: null,
+        name: '',
+        email: '',
+        password: '',
+        confirm: ''
+      },
       editUserForm: {
         id: null,
         name: '',
@@ -1585,9 +1722,6 @@ export default {
         } else if (Array.isArray(res?.data?.data)) {
           users = res.data.data
           total = res?.data?.total ?? res?.data?.totalCount ?? res?.data?.meta?.total ?? users.length
-        } else if (Array.isArray(res?.data?.users)) {
-          users = res.data.users
-          total = res?.data?.total ?? res?.data?.totalCount ?? res?.data?.meta?.total ?? users.length
         } else if (Array.isArray(res?.data?.data?.data)) {
           // Ex: { data: { data: { data: [...], total/meta } } }
           users = res.data.data.data
@@ -1754,21 +1888,103 @@ export default {
         }
       } catch (e) {}
     },
-    async resetPassword(user) {
-      try { await this.apiResetPassword(user.id) } catch (e) {}
+    openChangePassword(user) {
+      this.changePasswordForm = {
+        id: user.id,
+        name: user.name || '',
+        email: user.email || '',
+        password: '',
+        confirm: ''
+      }
+      this.showChangePasswordModal = true
+    },
+    async saveChangedPassword() {
+      try {
+        const { id, password, confirm } = this.changePasswordForm
+        if (!id || !password || password !== confirm) return
+        await this.updateUser(id, { password })
+        await this.fetchUsers()
+        this.showChangePasswordModal = false
+        this.changePasswordForm.password = ''
+        this.changePasswordForm.confirm = ''
+      } catch (e) {
+        console.error('Erro ao alterar senha:', e)
+      }
+    },
+    requestDelete(user) {
+      this.deleteTargetUser = user
+      this.showDeleteConfirmModal = true
+    },
+    cancelDelete() {
+      this.showDeleteConfirmModal = false
+      this.deleteTargetUser = null
+    },
+    async confirmDelete() {
+      try {
+        const target = this.deleteTargetUser
+        if (!target?.id) return this.cancelDelete()
+        await this.apiDeleteUser(target.id)
+        await this.fetchUsers()
+        this.showSuccess(`Conta de ${target.name || target.email} eliminada com sucesso.`)
+      } catch (e) {
+        console.error('Erro ao eliminar utilizador:', e)
+        this.showError(e?.response?.data?.message || 'Falha ao eliminar a conta.')
+      } finally {
+        this.cancelDelete()
+      }
     },
     // Bulk Actions Methods
     async bulkAction(action) {
       try {
         const ids = this.users.filter(u => u.selected).map(u => u.id)
         if (ids.length === 0) return (this.showBulkActions = false)
+        if (action === 'delete' || action === 'remove' || action === 'destroy') {
+          this.bulkDeleteIds = ids
+          this.showBulkDeleteConfirmModal = true
+          return
+        }
         await this.apiBulkAction({ action, ids })
         await this.fetchUsers()
+        this.showSuccess('Ação em massa concluída com sucesso.')
       } catch (e) {
+        console.error('Erro em ação em massa:', e)
+        this.showError(e?.response?.data?.message || 'Falha na ação em massa.')
       } finally {
         this.showBulkActions = false
       }
     },
+    confirmBulkDelete() {
+      this.apiBulkAction({ action: 'delete', ids: this.bulkDeleteIds })
+        .then(() => {
+          this.fetchUsers()
+          this.showSuccess('Ação em massa concluída com sucesso.')
+        })
+        .catch((e) => {
+          console.error('Erro em ação em massa:', e)
+          this.showError(e?.response?.data?.message || 'Falha na ação em massa.')
+        })
+        .finally(() => {
+          this.cancelBulkDelete()
+        })
+    },
+    cancelBulkDelete() {
+      this.showBulkDeleteConfirmModal = false
+      this.bulkDeleteIds = []
+    },
+    // Toast helpers
+    pushToast(message, type = 'info', timeout = 3500) {
+      const id = this.nextToastId++
+      this.toasts.push({ id, message, type })
+      if (timeout) {
+        setTimeout(() => this.removeToast(id), timeout)
+      }
+      return id
+    },
+    removeToast(id) {
+      this.toasts = this.toasts.filter(t => t.id !== id)
+    },
+    showSuccess(msg) { this.pushToast(msg, 'success') },
+    showError(msg) { this.pushToast(msg, 'error', 5000) },
     // Password Recovery Methods
     getRecoveryMethodClass(method) {
       const classes = {
@@ -1821,8 +2037,55 @@ export default {
     
     // Export users
     exportUsers() {
-      // usa API para exportação (download gerido no composable)
-      this.apiExportUsers({ format: 'csv', params: { q: this.searchTerm || undefined, status: this.statusFilter || undefined } })
+      // Tenta API de exportação; se 404, faz export local (CSV) com filtros
+      const params = { q: this.searchTerm || undefined, status: this.statusFilter || undefined }
+      this.apiExportUsers({ format: 'csv', params })
+        .then(() => {
+          this.showSuccess('Exportação iniciada.')
+        })
+        .catch(async (e) => {
+          const status = e?.response?.status
+          if (status === 404) {
+            try {
+              // Fallback: obter todos os utilizadores (ignorando paginação) e gerar CSV local
+              const res = await this.listUsers({ ...params, per_page: 10000, page: 1 })
+              let users = []
+              if (Array.isArray(res)) users = res
+              else if (Array.isArray(res?.users)) users = res.users
+              else if (Array.isArray(res?.data)) users = res.data
+              else if (Array.isArray(res?.data?.data)) users = res.data.data
+              else if (Array.isArray(res?.data?.data?.data)) users = res.data.data.data
+
+              const csvContent = this.generateCSV(users.map(u => ({
+                name: u.name,
+                email: u.email,
+                role: this.displayEntityName(u.role),
+                department: this.displayEntityName(u.department),
+                status: u.status,
+                birthDate: u.birthDate,
+                phone: u.phone,
+                startDate: u.startDate,
+              })))
+
+              // Add UTF-8 BOM to preserve acentos in Excel
+          const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' })
+              const link = document.createElement('a')
+              const url = URL.createObjectURL(blob)
+              link.setAttribute('href', url)
+              link.setAttribute('download', 'utilizadores.csv')
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              URL.revokeObjectURL(url)
+              this.showSuccess('Exportação concluída (fallback local).')
+            } catch (fe) {
+              console.error('Export fallback failed:', fe)
+              this.showError('Falha na exportação.')
+            }
+          } else {
+            this.showError(e?.response?.data?.message || 'Falha na exportação.')
+          }
+        })
     },
     
     generateCSV(data) {
@@ -1868,7 +2131,8 @@ export default {
       }]
       
       const csvContent = this.generateCSV(templateData)
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      // Add UTF-8 BOM to preserve acentos in Excel
+      const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' })
       const link = document.createElement('a')
       const url = URL.createObjectURL(blob)
       link.setAttribute('href', url)

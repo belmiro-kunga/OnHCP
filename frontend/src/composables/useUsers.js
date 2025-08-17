@@ -10,8 +10,8 @@ import api from './api'
  * - PUT    /api/users/:id                 -> updateUser(id, payload)
  * - DELETE /api/users/:id                 -> deleteUser(id)
  * - POST   /api/users/:id/reset-password  -> resetPassword(id)
- * - POST   /api/users/:id/mfa/enable      -> enableMfa(id)
- * - POST   /api/users/:id/mfa/disable     -> disableMfa(id)
+ * - POST   /api/users/:id/enable-mfa      -> enableMfa(id)
+ * - POST   /api/users/:id/disable-mfa     -> disableMfa(id)
  * - POST   /api/users/bulk                -> bulkAction({ action, ids })
  * - POST   /api/users/import              -> importUsers(file)
  * - GET    /api/users/export?format=...   -> exportUsers({ format })
@@ -124,7 +124,7 @@ export function useUsers() {
     loading.value = true
     error.value = null
     try {
-      const { data } = await api.post(`/users/${encodeURIComponent(id)}/mfa/enable`)
+      const { data } = await api.post(`/users/${encodeURIComponent(id)}/enable-mfa`)
       return data
     } catch (e) {
       error.value = e?.response?.data?.message || e.message || 'Erro ao ativar MFA'
@@ -138,7 +138,7 @@ export function useUsers() {
     loading.value = true
     error.value = null
     try {
-      const { data } = await api.post(`/users/${encodeURIComponent(id)}/mfa/disable`)
+      const { data } = await api.post(`/users/${encodeURIComponent(id)}/disable-mfa`)
       return data
     } catch (e) {
       error.value = e?.response?.data?.message || e.message || 'Erro ao desativar MFA'

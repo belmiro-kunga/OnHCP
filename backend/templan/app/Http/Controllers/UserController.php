@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\RoleResolver;
 
 class UserController extends Controller
 {
@@ -80,6 +81,20 @@ class UserController extends Controller
         if (isset($data['role_id'])) $payload['role_id'] = $data['role_id'];
         if (isset($data['department_id'])) $payload['department_id'] = $data['department_id'];
         if (isset($data['status'])) $payload['status'] = $data['status'];
+
+        // Auto-assign role if not provided
+        if (!isset($payload['role_id'])) {
+            /** @var RoleResolver $resolver */
+            $resolver = app(RoleResolver::class);
+            $resolved = $resolver->resolve([
+                'department_id' => $payload['department_id'] ?? null,
+                'job_title' => $data['job_title'] ?? null,
+                'ad_groups' => (array)($data['ad_groups'] ?? []),
+            ]);
+            if ($resolved) {
+                $payload['role_id'] = $resolved;
+            }
+        }
 
         $user = User::create($payload);
         $user->load(['role', 'department']);
@@ -180,6 +195,8 @@ class UserController extends Controller
         $file = $request->file('file');
         $created = 0;
 
+        /** @var RoleResolver $resolver */
+        $resolver = app(RoleResolver::class);
         if (($handle = fopen($file->getRealPath(), 'r')) !== false) {
             // skip header if present
             $first = true;
@@ -188,11 +205,24 @@ class UserController extends Controller
                 $first = false;
                 $name = $row[0] ?? null;
                 $email = $row[1] ?? null;
+                $deptId = isset($row[2]) ? (int)$row[2] : null; // optional department_id in column 3
+                $job = $row[3] ?? null; // optional job_title in column 4
                 if ($name && $email) {
-                    User::firstOrCreate(['email' => $email], [
+                    $payload = [
                         'name' => $name,
+                        'email' => $email,
                         'password' => Str::random(10),
+                    ];
+                    if ($deptId) $payload['department_id'] = $deptId;
+                    // Resolve role if mapping exists
+                    $resolved = $resolver->resolve([
+                        'department_id' => $deptId,
+                        'job_title' => $job,
+                        'ad_groups' => [],
                     ]);
+                    if ($resolved) $payload['role_id'] = $resolved;
+
+                    User::firstOrCreate(['email' => $email], $payload);
                     $created++;
                 }
             }

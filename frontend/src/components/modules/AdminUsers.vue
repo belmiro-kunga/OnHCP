@@ -25,17 +25,7 @@
         >
           Autenticação e Acesso
         </button>
-        <button
-          @click="activeTab = 'security'"
-          :class="[
-            'py-2 px-1 border-b-2 font-medium text-sm',
-            activeTab === 'security'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          ]"
-        >
-          🔑 Recuperação de Senhas
-        </button>
+        
         <button
           @click="activeTab = 'enterprise'; loadEnterprise()"
           :class="[
@@ -81,17 +71,7 @@
           Permissões
         </button>
         
-        <button v-if="can('users.manage')"
-          @click="activeTab = 'reports'"
-          :class="[
-            'py-2 px-1 border-b-2 font-medium text-sm',
-            activeTab === 'reports'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          ]"
-        >
-          Relatórios
-        </button>
+        
       </nav>
     </div>
 
@@ -226,10 +206,7 @@
       <AdminDashboard />
     </div>
 
-    <!-- Reports Tab -->
-    <div v-if="activeTab === 'reports' && can('users.manage')">
-      <AdminReports />
-    </div>
+    
 
     <!-- Groups/Teams Tab -->
     <div v-if="activeTab === 'groups' && can('users.manage')">
@@ -1292,62 +1269,196 @@
           <AdminPermissions />
         </div>
       </div>
+
+      <div v-if="selectedUser" class="space-y-6">
+        <!-- User Header -->
+        <div class="flex items-center space-x-6 bg-gray-50 p-6 rounded-lg">
+          <div class="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center">
+            <img v-if="selectedUser.avatar" :src="selectedUser.avatar" class="w-24 h-24 rounded-full object-cover" />
+            <span v-else class="text-2xl font-medium text-gray-700">{{ selectedUser.name.charAt(0) }}</span>
+          </div>
+          <div class="flex-1">
+            <h4 class="text-xl font-semibold text-gray-900">{{ selectedUser.name }}</h4>
+            <p class="text-gray-600">{{ displayEntityName(selectedUser.role) }} - {{ displayEntityName(selectedUser.department) }}</p>
+            <div class="flex items-center space-x-4 mt-2">
+              <span :class="[
+                'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
+                selectedUser.status === 'Ativo' ? 'bg-green-100 text-green-800' :
+                selectedUser.status === 'Pendente' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+              ]">
+                {{ selectedUser.status }}
+              </span>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Dados Pessoais -->
+          <div class="space-y-4">
+            <h5 class="font-medium text-gray-900 border-b pb-2">Dados Pessoais</h5>
+            <div class="space-y-3">
+              <div>
+                <label class="text-sm font-medium text-gray-500">Email</label>
+                <p class="text-sm text-gray-900">{{ selectedUser.email }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Data de Nascimento</label>
+                <p class="text-sm text-gray-900">{{ selectedUser.birthDate || 'Não informado' }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Idade</label>
+                <p class="text-sm text-gray-900">{{ calculateAge(selectedUser.birthDate) }} anos</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Telefone</label>
+                <p class="text-sm text-gray-900">{{ selectedUser.phone || 'Não informado' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dados Profissionais -->
+          <div class="space-y-4">
+            <h5 class="font-medium text-gray-900 border-b pb-2">Dados Profissionais</h5>
+            <div class="space-y-3">
+              <div>
+                <label class="text-sm font-medium text-gray-500">Data de Início</label>
+                <p class="text-sm text-gray-900">{{ selectedUser.startDate || 'Não informado' }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Tempo de Trabalho</label>
+                <p class="text-sm text-gray-900">{{ calculateWorkTime(selectedUser.startDate) }}</p>
+              </div>
+
+              <div>
+                <label class="text-sm font-medium text-gray-500">Último Login</label>
+                <p class="text-sm text-gray-900">{{ selectedUser.lastLogin }}</p>
+                <p class="text-xs text-gray-500">{{ selectedUser.lastLoginDevice }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress and Statistics -->
+        <div class="bg-gray-50 p-6 rounded-lg">
+          <h5 class="font-medium text-gray-900 mb-4">Progresso e Estatísticas</h5>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-600">{{ selectedUser.progress }}%</div>
+              <div class="text-sm text-gray-500">Progresso Geral</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-green-600">{{ selectedUser.completedCourses || 0 }}</div>
+              <div class="text-sm text-gray-500">Cursos Concluídos</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-yellow-600">{{ selectedUser.certificates || 0 }}</div>
+              <div class="text-sm text-gray-500">Certificados</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Modal de Gestão de Utilizadores -->
-  <div v-if="showUsersManagementModal" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="showUsersManagementModal = false">
-    <!-- Overlay transparente -->
-    <div class="absolute inset-0 bg-black bg-opacity-30" @click.self="showUsersManagementModal = false"></div>
-    <!-- Conteúdo do Modal -->
-    <div class="relative bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-      <!-- Header do Modal -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200">
-        <h3 class="text-xl font-semibold text-gray-900">Gestão de Utilizadores</h3>
-        <button @click="showUsersManagementModal = false" class="text-gray-400 hover:text-gray-600">
+<!-- Auto-Registration Requests Modal -->
+<div v-if="showRegistrationRequests" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click.self="showRegistrationRequests = false">
+  <div class="relative top-10 mx-auto p-6 border w-full max-w-6xl shadow-lg rounded-md bg-white">
+    <div class="mt-3">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-medium text-gray-900">Solicitações de Auto-Registro</h3>
+        <button @click="showRegistrationRequests = false" class="text-gray-400 hover:text-gray-600">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-      
-      <!-- Conteúdo -->
-      <div class="p-6">
-        <p class="text-sm text-gray-600">Gestão de Utilizadores em modal.</p>
-      </div>
-    </div>
-  </div>
 
-  <!-- Modal de Permissões -->
-  <div v-if="showPermissionsModal" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="showPermissionsModal = false">
-    <!-- Overlay transparente -->
-    <div class="absolute inset-0 bg-black bg-opacity-30" @click="showPermissionsModal = false"></div>
-    
-    <!-- Conteúdo do Modal -->
-    <div class="relative bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-      <!-- Header do Modal -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200">
-        <h3 class="text-xl font-semibold text-gray-900">Controle de Permissões e Perfis</h3>
-        <button @click="showPermissionsModal = false" class="text-gray-400 hover:text-gray-600">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-      </div>
-      
-      <!-- Conteúdo das Permissões -->
-      <div class="p-6">
-        <AdminPermissions />
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cargo</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="request in registrationRequests" :key="request.id">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ request.name }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ request.email }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ displayEntityName(request.role) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ request.requestDate }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div class="flex space-x-2">
+                  <button @click="approveRegistration(request)" class="text-green-600 hover:text-green-900">
+                    ✅ Aprovar
+                  </button>
+                  <button @click="rejectRegistration(request)" class="text-red-600 hover:text-red-900">
+                    ❌ Rejeitar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
+</div>
+
+<!-- Modal de Gestão de Utilizadores -->
+<div v-if="showUsersManagementModal" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="showUsersManagementModal = false">
+  <!-- Overlay transparente -->
+  <div class="absolute inset-0 bg-black bg-opacity-30" @click.self="showUsersManagementModal = false"></div>
+  <!-- Conteúdo do Modal -->
+  <div class="relative bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <!-- Header do Modal -->
+    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <h3 class="text-xl font-semibold text-gray-900">Gestão de Utilizadores</h3>
+      <button @click="showUsersManagementModal = false" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <!-- Conteúdo -->
+    <div class="p-6">
+      <p class="text-sm text-gray-600">Gestão de Utilizadores em modal.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Permissões -->
+<div v-if="showPermissionsModal" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="showPermissionsModal = false">
+  <!-- Overlay transparente -->
+  <div class="absolute inset-0 bg-black bg-opacity-30" @click.self="showPermissionsModal = false"></div>
+  <!-- Conteúdo do Modal -->
+  <div class="relative bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <!-- Header do Modal -->
+    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <h3 class="text-xl font-semibold text-gray-900">Controle de Permissões e Perfis</h3>
+      <button @click="showPermissionsModal = false" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <!-- Conteúdo das Permissões -->
+    <div class="p-6">
+      <AdminPermissions />
+    </div>
+  </div>
+</div>
 </template>
 
 <script>
 import UserAuthentication from './UserAuthentication.vue'
 import AdminPermissions from './AdminPermissions.vue'
 import AdminDashboard from './AdminDashboard.vue'
-import AdminReports from './AdminReports.vue'
 import AdminGroups from './AdminGroups.vue'
 import AdminApprovals from './AdminApprovals.vue'
 import AdminRoles from './AdminRoles.vue'
@@ -1357,6 +1468,8 @@ import { useSecurityIp } from '../../composables/useSecurityIp'
 import { useUsers } from '../../composables/useUsers'
 import { useRoles } from '../../composables/useRoles'
 import { useDepartments } from '../../composables/useDepartments'
+import { stripHtml, displayEntityName, displayOptionLabel } from '../../composables/useSanitize'
+import { generateCSV } from '../../composables/useCsv'
 
 export default {
   name: 'AdminUsers',
@@ -1364,7 +1477,6 @@ export default {
     UserAuthentication,
     AdminPermissions,
     AdminDashboard,
-    AdminReports,
     AdminGroups,
     AdminApprovals,
     AdminRoles,
@@ -1409,7 +1521,9 @@ export default {
       // users api
       usersLoading, usersError, listUsers, getUser, createUser, updateUser, apiDeleteUser, apiResetPassword, enableMfa, disableMfa, apiBulkAction, apiImportUsers, apiExportUsers,
       // roles and departments api
-      getRoleOptions, getDepartmentOptions
+      getRoleOptions, getDepartmentOptions,
+      // utility helpers
+      stripHtml, displayEntityName, displayOptionLabel, generateCSV
     }
   },
   data() {
@@ -1782,7 +1896,7 @@ export default {
                 : ''
           return {
             value: id !== undefined && id !== null ? String(id) : '',
-            label: this.stripHtml(String(rawLabel))
+            label: stripHtml(String(rawLabel))
           }
         })
         
@@ -1797,7 +1911,7 @@ export default {
                 : ''
           return {
             value: id !== undefined && id !== null ? String(id) : '',
-            label: this.stripHtml(String(rawLabel))
+            label: stripHtml(String(rawLabel))
           }
         })
       } catch (e) {
@@ -1829,13 +1943,13 @@ export default {
       // Map role/department to IDs if needed
       let roleId = user.role_id
       if (!roleId && user.role && this.availableRoles?.length) {
-        const plainRole = this.displayEntityName(user.role)
+        const plainRole = displayEntityName(user.role)
         const r = this.availableRoles.find(x => x.label === plainRole)
         roleId = r ? r.value : ''
       }
       let departmentId = user.department_id
       if (!departmentId && user.department && this.availableDepartments?.length) {
-        const plainDept = this.displayEntityName(user.department)
+        const plainDept = displayEntityName(user.department)
         const d = this.availableDepartments.find(x => x.label === plainDept)
         departmentId = d ? d.value : ''
       }
@@ -2056,15 +2170,15 @@ export default {
               else if (Array.isArray(res?.data?.data)) users = res.data.data
               else if (Array.isArray(res?.data?.data?.data)) users = res.data.data.data
 
-              const csvContent = this.generateCSV(users.map(u => ({
+              const csvContent = generateCSV(users.map(u => ({
                 name: u.name,
                 email: u.email,
-                role: this.displayEntityName(u.role),
-                department: this.displayEntityName(u.department),
+                role: displayEntityName(u.role),
+                department: displayEntityName(u.department),
                 status: u.status,
                 birthDate: u.birthDate,
                 phone: u.phone,
-                startDate: u.startDate,
+                startDate: u.startDate
               })))
 
               // Add UTF-8 BOM to preserve acentos in Excel
@@ -2259,78 +2373,7 @@ export default {
 
       return true
     },
-    // Normalizar valor vindo do backend (string/JSON/objeto) para exibir somente o nome
-    displayEntityName(value) {
-      try {
-        if (value == null) return ''
-        // Se já for string
-        if (typeof value === 'string') {
-          const trimmed = value.trim()
-          // Detectar JSON em string
-          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-            try {
-              const parsed = JSON.parse(trimmed)
-              const name = parsed?.name ?? parsed?.label ?? parsed?.title ?? parsed?.description ?? ''
-              return this.stripHtml(String(name || ''))
-            } catch (_) {
-              return this.stripHtml(value)
-            }
-          }
-          return this.stripHtml(value)
-        }
-        // Se for objeto
-        if (typeof value === 'object') {
-          const name = value?.name ?? value?.label ?? value?.title ?? value?.description ?? ''
-          return this.stripHtml(String(name || ''))
-        }
-        // Outros tipos
-        return this.stripHtml(String(value))
-      } catch (_) {
-        return ''
-      }
-    },
-
-    // Normalizar e sanitizar rótulos de opções (evita aparecer JSON/objetos na UI)
-    displayOptionLabel(option) {
-      try {
-        if (option == null) return ''
-        // Fonte do label
-        const labelSource = option.label ?? option.name ?? option.title ?? option.description ?? ''
-        // Se já for string
-        if (typeof labelSource === 'string') {
-          const trimmed = labelSource.trim()
-          // Tentar detectar JSON em string
-          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-            try {
-              const parsed = JSON.parse(trimmed)
-              const fromParsed = parsed?.name ?? parsed?.label ?? parsed?.title ?? parsed?.description ?? ''
-              return this.stripHtml(String(fromParsed || ''))
-            } catch (_) {
-              // Se não parsear, retornar versão sanitizada da string original
-              return this.stripHtml(labelSource)
-            }
-          }
-          return this.stripHtml(labelSource)
-        }
-        // Se for objeto
-        if (typeof labelSource === 'object' && labelSource !== null) {
-          const fromObj = labelSource.name ?? labelSource.label ?? labelSource.title ?? labelSource.description ?? ''
-          return this.stripHtml(String(fromObj || ''))
-        }
-        // Outros tipos: coagir para string e sanitizar
-        return this.stripHtml(String(labelSource))
-      } catch (_) {
-        return ''
-      }
-    },
-
-    // Utilitário: remover HTML/SVG de strings
-    stripHtml(value) {
-      if (typeof value !== 'string') return value
-      const tmp = document.createElement('div')
-      tmp.innerHTML = value
-      return (tmp.textContent || tmp.innerText || '').trim()
-    }
+    
   }
 }
 </script>

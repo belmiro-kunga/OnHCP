@@ -22,5 +22,8 @@ class DatabaseSeeder extends Seeder
 
         // Create initial admin user
         $this->call(AdminUserSeeder::class);
+        
+        // Create security data (IP policies and audit logs)
+        $this->call(SecuritySeeder::class);
     }
 }

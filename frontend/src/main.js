@@ -25,6 +25,11 @@ const routes = [
     component: AdminDashboard,
     meta: { requiresAuth: true, permissions: ['users.view'] }
   },
+  // Redirect legacy/removed route to Users to avoid 404 and warnings
+  {
+    path: '/admin/dashboard/users-report',
+    redirect: '/admin/dashboard/users'
+  },
   {
     path: '/admin/dashboard/simulado',
     component: AdminDashboard,
@@ -52,8 +57,7 @@ const routes = [
   },
   {
     path: '/admin/dashboard/reports',
-    component: AdminDashboard,
-    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+    redirect: '/admin/dashboard/users'
   },
   {
     path: '/admin/dashboard/audit',
@@ -64,6 +68,36 @@ const routes = [
     path: '/admin/dashboard/security',
     component: AdminDashboard,
     meta: { requiresAuth: true, permissions: ['security.view'] }
+  },
+  {
+    path: '/admin/dashboard/role-mappings',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['users.manage'] }
+  },
+  {
+    path: '/admin/dashboard/settings',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+  },
+  {
+    path: '/admin/dashboard/settings/login',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+  },
+  {
+    path: '/admin/dashboard/settings/security',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+  },
+  {
+    path: '/admin/dashboard/settings/audit',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+  },
+  {
+    path: '/admin/dashboard/settings/email',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
   }
 ]
 

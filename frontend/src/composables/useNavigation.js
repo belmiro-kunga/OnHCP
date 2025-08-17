@@ -13,20 +13,30 @@ export function useNavigation() {
   const activeTab = globalActiveTab
 
   const menuItems = ref([
+    {
+      id: 'overview',
+      name: 'Menu',
+      icon: 'IconDashboard'
+    },
+    {
+      id: 'onboarding',
+      name: 'Integração',
+      icon: 'IconUserPlus'
+    },
     { 
       id: 'users', 
       name: 'Utilizadores',
       icon: 'IconUsers'
     },
+    {
+      id: 'role-mappings',
+      name: 'Mapeamentos',
+      icon: 'IconShield'
+    },
     { 
       id: 'simulado', 
       name: 'Simulados',
       icon: 'IconClipboard'
-    },
-    { 
-      id: 'onboarding', 
-      name: 'Integração',
-      icon: 'IconUserPlus'
     },
     { 
       id: 'cursos', 
@@ -44,15 +54,10 @@ export function useNavigation() {
       icon: 'IconAward'
     },
     
-    { 
-      id: 'audit', 
-      name: 'Auditoria',
-      icon: 'IconShield'
-    },
     {
-      id: 'security',
-      name: 'Segurança',
-      icon: 'IconShield'
+      id: 'settings',
+      name: 'Configurações',
+      icon: 'IconDashboard'
     }
   ])
 

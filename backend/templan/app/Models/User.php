@@ -27,6 +27,7 @@ class User extends Authenticatable
         'mfa_enabled',
         'role_id',
         'department_id',
+        'ad_groups',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'ad_groups' => 'array',
         ];
     }
 

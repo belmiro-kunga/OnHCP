@@ -13,6 +13,73 @@
     </div>
 
     <div v-else class="space-y-8">
+      <!-- LDAP / Active Directory Configuration -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-medium text-gray-900">LDAP / Active Directory</h3>
+          <div class="text-sm text-gray-500">Configuração de diretório corporativo</div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">Host</label>
+            <input v-model="directory.host" placeholder="ex.: ad.contoso.local" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+          <div>
+            <label class="form-label">IP</label>
+            <input v-model="directory.ip" placeholder="ex.: 10.0.0.10" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+          <div>
+            <label class="form-label">Porta</label>
+            <input v-model.number="directory.port" type="number" min="1" max="65535" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+          <div class="flex items-center gap-6 pt-6">
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" v-model="directory.use_ssl" :disabled="!can('users.manage')" />
+              <span>SSL (LDAPS)</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" v-model="directory.use_tls" :disabled="!can('users.manage')" />
+              <span>StartTLS</span>
+            </label>
+          </div>
+
+          <div>
+            <label class="form-label">Domínio</label>
+            <input v-model="directory.domain" placeholder="ex.: CONTOSO" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+          <div>
+            <label class="form-label">Base DN</label>
+            <input v-model="directory.base_dn" placeholder="ex.: DC=contoso,DC=local" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+          <div>
+            <label class="form-label">Bind DN</label>
+            <input v-model="directory.bind_dn" placeholder="ex.: CN=ldap-reader,OU=Service Accounts,DC=contoso,DC=local" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+          <div>
+            <label class="form-label">Bind Password</label>
+            <input v-model="bindPassword" type="password" autocomplete="new-password" placeholder="••••••••" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="form-label">Servidores DNS (separados por vírgula)</label>
+            <input v-model="dnsServersCsv" placeholder="ex.: 10.0.0.2, 10.0.0.3" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+          <div>
+            <label class="form-label">Máscara de Rede</label>
+            <input v-model="directory.netmask" placeholder="ex.: 255.255.255.0 ou /24" class="form-input w-full" :disabled="!can('users.manage')" />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 mt-4">
+          <button class="btn-primary" @click="saveDirectory" :disabled="savingDirectory || !can('users.manage')">
+            <span v-if="!savingDirectory">Guardar</span>
+            <span v-else>Guardando...</span>
+          </button>
+          <button class="btn-secondary" @click="testDirectory" :disabled="testingDirectory">Testar Conexão</button>
+          <span v-if="directoryMessage" :class="directoryMessageType === 'success' ? 'text-green-600' : 'text-red-600'" class="text-sm">{{ directoryMessage }}</span>
+          <span v-if="testResult" :class="testResult.ok ? 'text-green-700' : 'text-yellow-700'" class="text-sm">{{ testResult.message }}</span>
+        </div>
+      </div>
       <!-- IP Policies (Whitelist/Blacklist) -->
       <div class="card">
         <div class="flex items-center justify-between mb-4">
@@ -107,6 +174,19 @@ export default {
     const ipLocks = reactive([])
     const newPolicy = reactive({ type: 'whitelist', ip_cidr: '', reason: '' })
 
+    // LDAP / AD state
+    const directory = reactive({
+      host: '', ip: '', port: 389, use_ssl: false, use_tls: false,
+      dns_servers: [], netmask: '', domain: '', base_dn: '', bind_dn: ''
+    })
+    const bindPassword = ref('') // not returned by API
+    const dnsServersCsv = ref('')
+    const savingDirectory = ref(false)
+    const testingDirectory = ref(false)
+    const directoryMessage = ref('')
+    const directoryMessageType = ref('success')
+    const testResult = ref(null)
+
     async function fetchPolicies() {
       try {
         const res = await fetch('/api/security/ip-policies')
@@ -126,6 +206,74 @@ export default {
       } catch (e) {
         console.error(e)
         errorMsg.value = 'Falha ao carregar bloqueios de IP.'
+      }
+    }
+
+    async function fetchDirectoryConfig() {
+      try {
+        const res = await fetch('/api/directory/config', { headers: { 'Accept': 'application/json' } })
+        const json = await res.json()
+        const cfg = json?.data || {}
+        Object.assign(directory, cfg)
+        dnsServersCsv.value = Array.isArray(cfg.dns_servers) ? cfg.dns_servers.join(', ') : (cfg.dns_servers || '')
+      } catch (e) {
+        console.error(e)
+        directoryMessageType.value = 'error'
+        directoryMessage.value = 'Falha ao carregar configuração do diretório.'
+      }
+    }
+
+    async function saveDirectory() {
+      if (!can('users.manage')) return
+      savingDirectory.value = true
+      directoryMessage.value = ''
+      try {
+        const payload = {
+          ...directory,
+          dns_servers: dnsServersCsv.value,
+        }
+        if (bindPassword.value) payload.bind_password = bindPassword.value
+        const res = await fetch('/api/directory/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) throw new Error('Falha ao guardar configuração')
+        const json = await res.json()
+        Object.assign(directory, json.data || {})
+        directoryMessageType.value = 'success'
+        directoryMessage.value = 'Configuração guardada com sucesso.'
+        bindPassword.value = ''
+      } catch (e) {
+        console.error(e)
+        directoryMessageType.value = 'error'
+        directoryMessage.value = 'Não foi possível guardar a configuração.'
+      } finally {
+        savingDirectory.value = false
+      }
+    }
+
+    async function testDirectory() {
+      testingDirectory.value = true
+      testResult.value = null
+      try {
+        const payload = {
+          ...directory,
+          dns_servers: dnsServersCsv.value,
+        }
+        if (bindPassword.value) payload.bind_password = bindPassword.value
+        const res = await fetch('/api/directory/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        const json = await res.json()
+        testResult.value = json?.data || { ok: false, message: 'Teste executado' }
+      } catch (e) {
+        console.error(e)
+        testResult.value = { ok: false, message: 'Falha ao testar a conexão' }
+      } finally {
+        testingDirectory.value = false
       }
     }
 
@@ -178,11 +326,13 @@ export default {
 
     onMounted(async () => {
       loading.value = true
-      await Promise.all([fetchPolicies(), fetchLocks()])
+      await Promise.all([fetchPolicies(), fetchLocks(), fetchDirectoryConfig()])
       loading.value = false
     })
 
-    return { can, loading, errorMsg, policies, newPolicy, addPolicy, removePolicy, ipLocks, unlockIp }
+    return { can, loading, errorMsg, policies, newPolicy, addPolicy, removePolicy, ipLocks, unlockIp,
+      directory, bindPassword, dnsServersCsv, savingDirectory, testingDirectory, directoryMessage, directoryMessageType, testResult,
+      saveDirectory, testDirectory }
   }
 }
 </script>

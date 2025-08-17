@@ -42,6 +42,8 @@ import AdminGamificacao from './modules/AdminGamificacao.vue'
 import AdminCertificados from './modules/AdminCertificados.vue'
 import AdminAudit from './modules/AdminAudit.vue'
 import AdminSecurity from './modules/AdminSecurity.vue'
+import AdminRoleMappings from './modules/AdminRoleMappings.vue'
+import AdminSettings from './modules/AdminSettings.vue'
 
 export default {
   name: 'AdminDashboard',
@@ -56,7 +58,9 @@ export default {
     AdminGamificacao,
     AdminCertificados,
     AdminAudit,
-    AdminSecurity
+    AdminSecurity,
+    AdminRoleMappings,
+    AdminSettings
   },
   setup() {
     const { activeTab, selectMenuItem } = useNavigation()
@@ -74,7 +78,9 @@ export default {
       gamificacao: 'AdminGamificacao',
       certificados: 'AdminCertificados',
       audit: 'AdminAudit',
-      security: 'AdminSecurity'
+      security: 'AdminSecurity',
+      'role-mappings': 'AdminRoleMappings',
+      settings: 'AdminSettings'
     }
 
     // Mapeamento de permissões por aba
@@ -87,11 +93,13 @@ export default {
       gamificacao: ['admin.dashboard.view'],
       certificados: ['admin.dashboard.view'],
       audit: ['audit.view'],
-      security: ['security.view']
+      security: ['security.view'],
+      'role-mappings': ['users.manage'],
+      settings: ['admin.dashboard.view']
     }
 
     const currentComponent = computed(() => {
-      return componentMap[activeTab.value] || 'AdminUsers'
+      return componentMap[activeTab.value] || 'AdminOverview'
     })
 
     const isAllowed = computed(() => {
@@ -102,13 +110,18 @@ export default {
     // Sincronizar aba ativa com a rota atual
     const syncActiveTabWithRoute = () => {
       const currentPath = router.currentRoute.value.path
+      // Handle nested settings routes
+      if (currentPath.startsWith('/admin/dashboard/settings')) {
+        activeTab.value = 'settings'
+        return
+      }
+
       const pathSegments = currentPath.split('/')
       const section = pathSegments[pathSegments.length - 1]
-      
       if (section && componentMap[section]) {
         activeTab.value = section
       } else {
-        activeTab.value = 'users'
+        activeTab.value = 'overview'
       }
     }
 

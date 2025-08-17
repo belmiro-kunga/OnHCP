@@ -128,6 +128,13 @@ export async function toggleAuthMethod(id, enabled) {
   return res?.data?.data || res?.data
 }
 
+// Update (partial) method fields: name, description, enabled, etc.
+export async function updateAuthMethod(id, payload) {
+  // Expect payload: { name?, description?, enabled?, type? }
+  const res = await api.patch(`/auth/methods/${id}`, payload)
+  return res?.data?.data || res?.data
+}
+
 // Sessions
 export async function getSessions() {
   const res = await api.get('/auth/sessions')
@@ -148,4 +155,18 @@ export async function getSecuritySettings() {
 export async function saveSecuritySettings(payload) {
   const res = await api.put('/auth/settings', payload)
   return res?.data?.data || res?.data
+}
+
+// Login Mode (password | ldap)
+export async function getLoginMode() {
+  const res = await api.get('/auth/login-mode')
+  const data = res?.data?.data || res?.data || {}
+  return data.mode || 'password'
+}
+
+export async function setLoginMode(mode) {
+  const payload = { mode }
+  const res = await api.put('/auth/login-mode', payload)
+  const data = res?.data?.data || res?.data || {}
+  return data.mode || 'password'
 }

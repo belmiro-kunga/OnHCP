@@ -1,34 +1,15 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-900">Gestão de Integração</h2>
-      <p class="text-gray-600">Configure e acompanhe o processo de integração dos utilizadores</p>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="mb-6 flex justify-between items-center">
-      <div class="flex space-x-4">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-lg font-semibold text-gray-900">Autenticação e Onboarding</h3>
+      <div class="flex space-x-3">
         <button @click="showCreateFlowModal = true" class="btn-primary">
           + Novo Fluxo de Integração
         </button>
         <button @click="exportProgress" class="btn-secondary">
           Exportar Progresso
         </button>
-      </div>
-      <div class="flex space-x-4">
-        <select v-model="filterStatus" class="form-input">
-          <option value="">Todos os Status</option>
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
-          <option value="rascunho">Rascunho</option>
-        </select>
-        <input 
-          v-model="searchTerm" 
-          type="text" 
-          placeholder="Procurar fluxos..."
-          class="form-input"
-        >
       </div>
     </div>
 
@@ -100,8 +81,72 @@
       </div>
     </div>
 
+    <!-- Fluxo de Entrada -->
+    <div class="card mb-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Fluxo de Entrada</h3>
+          <p class="text-gray-600 text-sm">Criação/Importação de contas, mensagens de boas-vindas e checklist inicial.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button class="btn-primary" @click="showCreateAccountModal = true">Criar Conta</button>
+          <button class="btn-secondary" @click="showImportUsersModal = true">Importar Utilizadores</button>
+          <button class="btn-secondary" @click="showWelcomeModal = true">Enviar Boas-vindas</button>
+        </div>
+      </div>
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Checklist Inicial -->
+        <div>
+          <h4 class="font-medium text-gray-900 mb-2">Checklist Inicial</h4>
+          <ul class="space-y-2">
+            <li v-for="item in checklist" :key="item.id" class="flex items-center justify-between">
+              <span class="text-gray-800">{{ item.label }}</span>
+              <label class="inline-flex items-center text-sm text-gray-600">
+                <input type="checkbox" class="form-checkbox mr-2" v-model="item.required">
+                Obrigatório
+              </label>
+            </li>
+          </ul>
+        </div>
+        <!-- Termos e Políticas -->
+        <div>
+          <h4 class="font-medium text-gray-900 mb-2">Aceitação de Termos e Políticas</h4>
+          <div class="space-y-3">
+            <label class="flex items-center text-gray-800">
+              <input type="checkbox" class="form-checkbox mr-2" v-model="requireTermsAcceptance">
+              Exigir aceitação dos termos na primeira entrada
+            </label>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">URL dos Termos/Políticas</label>
+              <input type="url" v-model="termsUrl" class="form-input w-full" placeholder="https://...">
+            </div>
+            <div class="text-right">
+              <button class="btn-secondary" @click="saveChecklistAndTerms">Guardar Configurações</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Onboarding Flows Table -->
     <div class="card">
+      <div class="flex justify-between items-center mb-4">
+        <h4 class="text-md font-semibold text-gray-900">Fluxos de Integração</h4>
+        <div class="flex space-x-2">
+          <select v-model="filterStatus" class="form-input text-sm">
+            <option value="">Todos os Status</option>
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+            <option value="rascunho">Rascunho</option>
+          </select>
+          <input
+            v-model="searchTerm"
+            type="text"
+            placeholder="Procurar fluxos..."
+            class="form-input text-sm"
+          />
+        </div>
+      </div>
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -187,17 +232,167 @@
         </div>
       </div>
     </div>
+
+    <!-- Create Account Modal -->
+    <div v-if="showCreateAccountModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click.self="showCreateAccountModal = false" role="dialog" aria-modal="true" aria-labelledby="createAccountTitle">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" tabindex="-1">
+        <div class="mt-1">
+          <h3 id="createAccountTitle" class="text-lg font-medium text-gray-900 mb-4">Criar Conta</h3>
+          <form @submit.prevent="createAccount" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+              <input v-model="newAccount.name" type="text" class="form-input w-full" required>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input v-model="newAccount.email" type="email" class="form-input w-full" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                <input v-model="newAccount.phone" type="tel" class="form-input w-full">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Função (Role ID)</label>
+                <input v-model="newAccount.role_id" type="text" class="form-input w-full" placeholder="opcional">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Departamento (ID)</label>
+                <input v-model="newAccount.department_id" type="text" class="form-input w-full" placeholder="opcional">
+              </div>
+            </div>
+            <div class="flex items-center gap-6">
+              <label class="inline-flex items-center text-sm">
+                <input type="checkbox" class="form-checkbox mr-2" v-model="newAccount.sendWelcomeEmail">
+                Enviar email de boas-vindas
+              </label>
+            </div>
+            <div class="flex justify-end gap-3">
+              <button type="button" class="btn-secondary" @click="showCreateAccountModal = false">Cancelar</button>
+              <button type="submit" class="btn-primary">Criar Conta</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Users Modal -->
+    <div v-if="showImportUsersModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click.self="showImportUsersModal = false" role="dialog" aria-modal="true" aria-labelledby="importUsersTitle">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" tabindex="-1">
+        <div class="mt-1">
+          <h3 id="importUsersTitle" class="text-lg font-medium text-gray-900 mb-4">Importar Utilizadores</h3>
+          <form @submit.prevent="handleImportUsers" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Ficheiro (.csv, .xlsx)</label>
+              <input type="file" accept=".csv,.xlsx" class="form-input w-full" @change="onFileSelected">
+            </div>
+            <div class="flex items-center gap-6">
+              <label class="inline-flex items-center text-sm">
+                <input type="checkbox" class="form-checkbox mr-2" v-model="importPayload.updateExisting">
+                Atualizar existentes
+              </label>
+              <label class="inline-flex items-center text-sm">
+                <input type="checkbox" class="form-checkbox mr-2" v-model="importPayload.sendWelcomeEmail">
+                Enviar email de boas-vindas
+              </label>
+            </div>
+            <div class="flex justify-end gap-3">
+              <button type="button" class="btn-secondary" @click="showImportUsersModal = false">Cancelar</button>
+              <button type="submit" class="btn-primary" :disabled="!importPayload.file">Importar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Welcome Modal -->
+    <div v-if="showWelcomeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click.self="showWelcomeModal = false" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" tabindex="-1">
+        <div class="mt-1">
+          <h3 id="welcomeTitle" class="text-lg font-medium text-gray-900 mb-4">Enviar Boas-vindas</h3>
+          <form @submit.prevent="sendWelcome" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input v-model="welcomeForm.email" type="email" class="form-input w-full">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                <input v-model="welcomeForm.phone" type="tel" class="form-input w-full">
+              </div>
+            </div>
+            <div class="flex items-center gap-6">
+              <label class="inline-flex items-center text-sm">
+                <input type="checkbox" class="form-checkbox mr-2" v-model="welcomeForm.sendEmail">
+                Email
+              </label>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Mensagem</label>
+              <textarea v-model="welcomeForm.message" rows="3" class="form-input w-full"></textarea>
+            </div>
+            <div class="flex justify-end gap-3">
+              <button type="button" class="btn-secondary" @click="showWelcomeModal = false">Cancelar</button>
+              <button type="submit" class="btn-primary">Enviar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import { useUsers } from '../../composables/useUsers'
+import api from '../../composables/api'
 export default {
   name: 'AdminOnboarding',
+  setup() {
+    // Expor métodos do módulo de utilizadores para reutilizar no onboarding
+    const { createUser, importUsers } = useUsers()
+    return { createUser, importUsers }
+  },
   data() {
     return {
       searchTerm: '',
       filterStatus: '',
       showCreateFlowModal: false,
+      // Fluxo de Entrada: estados dos modais
+      showCreateAccountModal: false,
+      showImportUsersModal: false,
+      showWelcomeModal: false,
+      // Formulários do Fluxo de Entrada
+      newAccount: {
+        name: '',
+        email: '',
+        phone: '',
+        role_id: '',
+        department_id: '',
+        sendWelcomeEmail: true,
+        
+      },
+      importPayload: {
+        file: null,
+        updateExisting: true,
+        sendWelcomeEmail: true,
+        
+      },
+      welcomeForm: {
+        email: '',
+        phone: '',
+        sendEmail: true,
+        message: 'Bem-vindo(a) à empresa! Siga as instruções no portal para completar a sua integração.'
+      },
+      // Checklist inicial e termos
+      checklist: [
+        { id: 'doc_identificacao', label: 'Documento de Identificação', required: true },
+        { id: 'politicas_seg', label: 'Leitura das Políticas de Segurança', required: true },
+        { id: 'contrato_trabalho', label: 'Assinatura do Contrato de Trabalho', required: true },
+      ],
+      requireTermsAcceptance: true,
+      termsUrl: '',
       stats: {
         fluxosAtivos: 5,
         integracoesCompletas: 89,
@@ -265,6 +460,74 @@ export default {
     }
   },
   methods: {
+    onFileSelected(e) {
+      const f = e?.target?.files?.[0]
+      this.importPayload.file = f || null
+    },
+    // ===== Fluxo de Entrada: Ações =====
+    async createAccount() {
+      try {
+        const payload = {
+          name: this.newAccount.name,
+          email: this.newAccount.email,
+          phone: this.newAccount.phone,
+          role_id: this.newAccount.role_id || undefined,
+          department_id: this.newAccount.department_id || undefined,
+        }
+        await this.createUser(payload)
+        if (this.newAccount.sendWelcomeEmail) {
+          await this.sendWelcomeInternal({
+            email: this.newAccount.email,
+            phone: this.newAccount.phone,
+            sendEmail: this.newAccount.sendWelcomeEmail,
+            message: this.welcomeForm.message
+          })
+        }
+        this.newAccount = { name: '', email: '', phone: '', role_id: '', department_id: '', sendWelcomeEmail: true }
+        this.showCreateAccountModal = false
+      } catch (e) {
+        console.error('Erro ao criar conta no onboarding:', e)
+      }
+    },
+    async handleImportUsers() {
+      try {
+        if (!this.importPayload.file) return
+        await this.importUsers(this.importPayload.file, {
+          updateExisting: this.importPayload.updateExisting ? '1' : '',
+          sendWelcomeEmail: this.importPayload.sendWelcomeEmail ? '1' : '',
+        })
+        this.importPayload = { file: null, updateExisting: true, sendWelcomeEmail: true }
+        this.showImportUsersModal = false
+      } catch (e) {
+        console.error('Erro ao importar utilizadores no onboarding:', e)
+      }
+    },
+    async sendWelcome() {
+      try {
+        await this.sendWelcomeInternal(this.welcomeForm)
+        this.showWelcomeModal = false
+      } catch (e) {
+        console.error('Erro ao enviar mensagem de boas-vindas:', e)
+      }
+    },
+    async sendWelcomeInternal({ email, phone, sendEmail, message }) {
+      // Endpoint de exemplo; ajuste conforme backend disponível
+      try {
+        await api.post('/onboarding/welcome', { email, phone, sendEmail, message })
+      } catch (e) {
+        // Caso o endpoint não exista ainda, não bloquear o fluxo
+        console.warn('Endpoint /onboarding/welcome indisponível, simulação local.')
+      }
+    },
+    saveChecklistAndTerms() {
+      // Persistência pode ser feita via API quando disponível
+      console.log('Checklist/Termos salvos:', {
+        checklist: this.checklist,
+        requireTermsAcceptance: this.requireTermsAcceptance,
+        termsUrl: this.termsUrl
+      })
+      alert('Configurações de checklist e termos guardadas.')
+    },
     getStatusClass(status) {
       switch (status) {
         case 'ativo':

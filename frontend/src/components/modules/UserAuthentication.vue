@@ -8,6 +8,37 @@
         <span>{{ t.message }}</span>
       </div>
     </div>
+
+    <!-- Configure Method Modal -->
+    <div v-if="showConfigureMethod" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click.self="cancelConfigureMethod" role="dialog" aria-modal="true" aria-labelledby="configureMethodTitle">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" tabindex="-1">
+        <div class="mt-3">
+          <h3 id="configureMethodTitle" class="text-lg font-medium text-gray-900 mb-4">Configurar Método</h3>
+          <div v-if="configureTarget" class="space-y-4">
+            <div>
+              <label class="form-label">Tipo</label>
+              <input class="form-input" :value="getMethodTypeLabel(configureTarget.type)" disabled />
+            </div>
+            <div>
+              <label class="form-label">Nome</label>
+              <input v-model="configureTarget.name" class="form-input" />
+            </div>
+            <div>
+              <label class="form-label">Descrição</label>
+              <textarea v-model="configureTarget.description" class="form-input" rows="3"></textarea>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-gray-700">Ativo</label>
+              <input v-model="configureTarget.enabled" type="checkbox" class="form-checkbox" />
+            </div>
+          </div>
+          <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" @click="cancelConfigureMethod" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Cancelar</button>
+            <button type="button" @click="applyConfigureMethod" class="btn-primary">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Header -->
     <div class="flex justify-between items-center">
       <h3 class="text-lg font-semibold text-gray-900">Autenticação e Acesso</h3>
@@ -97,6 +128,12 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-if="loading.methods">
+              <td colspan="6" class="px-6 py-6 text-sm text-gray-500">A carregar métodos…</td>
+            </tr>
+            <tr v-else-if="!filteredAuthMethods.length">
+              <td colspan="6" class="px-6 py-6 text-sm text-gray-500">Sem métodos configurados.</td>
+            </tr>
             <tr v-for="method in filteredAuthMethods" :key="method.id">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
@@ -130,8 +167,15 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ method.lastUpdated }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button @click="configureMethod(method)" class="text-blue-600 hover:text-blue-900 mr-3">Configurar</button>
-                <button @click="toggleMethod(method)" :class="method.enabled ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'">
-                  {{ method.enabled ? 'Desativar' : 'Ativar' }}
+                <button
+                  @click="toggleMethod(method)"
+                  :disabled="loading.toggleMethod && loading.toggleMethod[method.id]"
+                  :class="[
+                    method.enabled ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900',
+                    (loading.toggleMethod && loading.toggleMethod[method.id]) ? 'opacity-60 cursor-not-allowed' : ''
+                  ]"
+                >
+                  {{ (loading.toggleMethod && loading.toggleMethod[method.id]) ? 'A atualizar…' : (method.enabled ? 'Desativar' : 'Ativar') }}
                 </button>
               </td>
             </tr>
@@ -192,10 +236,10 @@
     </div>
 
     <!-- Add Authentication Method Modal -->
-    <div v-if="showAddAuthMethod" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div v-if="showAddAuthMethod" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click.self="showAddAuthMethod = false" role="dialog" aria-modal="true" aria-labelledby="addMethodTitle">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" tabindex="-1">
         <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Adicionar Método de Autenticação</h3>
+          <h3 id="addMethodTitle" class="text-lg font-medium text-gray-900 mb-4">Adicionar Método de Autenticação</h3>
           <form @submit.prevent="addAuthMethod">
             <div class="mb-4">
               <label class="form-label">Tipo de Autenticação</label>
@@ -219,8 +263,8 @@
               <button type="button" @click="showAddAuthMethod = false" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                 Cancelar
               </button>
-              <button type="submit" class="btn-primary">
-                Adicionar
+              <button type="submit" class="btn-primary" :disabled="loading.addMethod">
+                {{ loading.addMethod ? 'A adicionar…' : 'Adicionar' }}
               </button>
             </div>
           </form>
@@ -331,6 +375,52 @@
                 </div>
               </div>
             </div>
+
+            <!-- LDAP / Active Directory -->
+            <div class="space-y-4 md:col-span-2">
+              <h4 class="font-medium text-gray-900">Configuração LDAP / Active Directory</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="form-label">Host</label>
+                  <input v-model="directoryConfig.host" type="text" class="form-input" placeholder="ex: ldap.example.com" :disabled="loading.ldapSave || loading.ldapConfig" />
+                </div>
+                <div>
+                  <label class="form-label">Base DN</label>
+                  <input v-model="directoryConfig.base_dn" type="text" class="form-input" placeholder="ex: DC=example,DC=com" :disabled="loading.ldapSave || loading.ldapConfig" />
+                </div>
+                <div>
+                  <label class="form-label">Bind DN (utilizador)</label>
+                  <input v-model="directoryConfig.bind_dn" type="text" class="form-input" placeholder="ex: CN=svc_ldap,OU=Service,DC=example,DC=com" :disabled="loading.ldapSave || loading.ldapConfig" />
+                </div>
+                <div>
+                  <label class="form-label">Password</label>
+                  <input v-model="directoryConfig.bind_password" type="password" class="form-input" autocomplete="new-password" :disabled="loading.ldapSave || loading.ldapConfig" />
+                  <p class="text-xs text-gray-500 mt-1">Nunca exibimos a password guardada. Preencha para atualizar.</p>
+                </div>
+                <div class="flex items-center space-x-6">
+                  <label class="inline-flex items-center">
+                    <input v-model="directoryConfig.use_ssl" type="checkbox" class="form-checkbox" :disabled="loading.ldapSave || loading.ldapConfig" />
+                    <span class="ml-2 text-sm text-gray-700">Usar SSL</span>
+                  </label>
+                  <label class="inline-flex items-center">
+                    <input v-model="directoryConfig.use_tls" type="checkbox" class="form-checkbox" :disabled="loading.ldapSave || loading.ldapConfig" />
+                    <span class="ml-2 text-sm text-gray-700">Usar StartTLS</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="flex items-center space-x-3">
+                <button type="button" @click="testLdapConnection" class="btn-secondary" :disabled="loading.ldapTest || loading.ldapConfig">
+                  {{ loading.ldapTest ? 'A testar…' : 'Testar Conexão' }}
+                </button>
+                <button type="button" @click="saveDirectoryConfig" class="btn-primary" :disabled="loading.ldapSave || loading.ldapConfig">
+                  {{ loading.ldapSave ? 'A guardar…' : 'Guardar LDAP' }}
+                </button>
+                <span v-if="ldapTest.ok !== null" :class="ldapTest.ok ? 'text-green-700' : 'text-red-700'" class="text-sm">
+                  {{ ldapTest.message }}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div class="flex justify-end space-x-3 mt-6">
@@ -389,8 +479,9 @@
 </template>
 
 <script>
-import { getAuthStats, getAuthMethods, createAuthMethod, toggleAuthMethod,
+import { getAuthStats, getAuthMethods, createAuthMethod, toggleAuthMethod, updateAuthMethod,
          getSessions, forceLogoutSession, getSecuritySettings, saveSecuritySettings } from '@/composables/useAuth'
+import { getDirectoryConfig, updateDirectoryConfig, testDirectoryConnection } from '@/composables/useDirectory'
 export default {
   name: 'UserAuthentication',
   data() {
@@ -405,6 +496,57 @@ export default {
         name: '',
         description: ''
       },
+    async fetchDirectoryConfig() {
+      this.loading.ldapConfig = true
+      try {
+        const cfg = await getDirectoryConfig()
+        this.directoryConfig = {
+          host: cfg.host || '',
+          base_dn: cfg.base_dn || '',
+          bind_dn: cfg.bind_dn || '',
+          bind_password: '', // never prefill secrets from backend response
+          use_ssl: Boolean(cfg.use_ssl),
+          use_tls: Boolean(cfg.use_tls),
+        }
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao carregar configuração LDAP')
+      } finally {
+        this.loading.ldapConfig = false
+      }
+    },
+    async saveDirectoryConfig() {
+      this.loading.ldapSave = true
+      try {
+        const payload = { ...this.directoryConfig }
+        if (!payload.bind_password) delete payload.bind_password
+        await updateDirectoryConfig(payload)
+        this.showSuccess('Configuração LDAP guardada')
+        // Clear password field after save
+        this.directoryConfig.bind_password = ''
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao guardar configuração LDAP')
+      } finally {
+        this.loading.ldapSave = false
+      }
+    },
+    async testLdapConnection() {
+      this.loading.ldapTest = true
+      this.ldapTest = { ok: null, message: '' }
+      try {
+        const payload = { ...this.directoryConfig }
+        if (!payload.bind_password) delete payload.bind_password
+        const res = await testDirectoryConnection(payload)
+        this.ldapTest = { ok: !!res.ok, message: res.message || (res.ok ? 'Conexão bem-sucedida' : 'Falha na conexão') }
+        if (this.ldapTest.ok) this.showSuccess(this.ldapTest.message)
+        else this.showError(this.ldapTest.message)
+      } catch (e) {
+        const msg = e?.response?.data?.message || 'Falha no teste de conexão LDAP'
+        this.ldapTest = { ok: false, message: msg }
+        this.showError(msg)
+      } finally {
+        this.loading.ldapTest = false
+      }
+    },
       loading: {
         stats: false,
         methods: false,
@@ -414,86 +556,22 @@ export default {
         addMethod: false,
         toggleMethod: {},
         forceLogout: false,
+        updateMethod: false,
+        ldapConfig: false,
+        ldapSave: false,
+        ldapTest: false,
       },
       toasts: [],
       authStats: {
-        traditional: 156,
-        mfa: 89,
-        sso: 34
+        traditional: 0,
+        mfa: 0,
+        sso: 0
       },
-      authMethods: [
-        {
-          id: 1,
-          name: 'Login Email/Senha',
-          type: 'password',
-          description: 'Autenticação tradicional com email e senha',
-          enabled: true,
-          userCount: 156,
-          lastUpdated: '15/01/2024'
-        },
-        {
-          id: 2,
-          name: 'Autenticação por SMS',
-          type: 'mfa',
-          description: 'Código de verificação via SMS',
-          enabled: true,
-          userCount: 89,
-          lastUpdated: '14/01/2024'
-        },
-        {
-          id: 3,
-          name: 'Google Authenticator',
-          type: 'mfa',
-          description: 'App autenticador TOTP',
-          enabled: true,
-          userCount: 67,
-          lastUpdated: '13/01/2024'
-        },
-        {
-          id: 4,
-          name: 'Active Directory',
-          type: 'sso',
-          description: 'Integração com AD corporativo',
-          enabled: true,
-          userCount: 34,
-          lastUpdated: '12/01/2024'
-        },
-        {
-          id: 5,
-          name: 'Login Google',
-          type: 'social',
-          description: 'Autenticação via Google OAuth2',
-          enabled: false,
-          userCount: 0,
-          lastUpdated: '10/01/2024'
-        }
-      ],
-      activeSessions: [
-        {
-          id: 1,
-          user: { name: 'Dr. João Silva', email: 'joao@hospital.com' },
-          ipAddress: '192.168.1.100',
-          device: 'Chrome/Windows',
-          startTime: '09:30',
-          lastActivity: '14:25'
-        },
-        {
-          id: 2,
-          user: { name: 'Dra. Maria Santos', email: 'maria@hospital.com' },
-          ipAddress: '192.168.1.101',
-          device: 'Safari/macOS',
-          startTime: '08:15',
-          lastActivity: '14:20'
-        },
-        {
-          id: 3,
-          user: { name: 'Carlos Oliveira', email: 'carlos@hospital.com' },
-          ipAddress: '192.168.1.102',
-          device: 'Firefox/Linux',
-          startTime: '10:45',
-          lastActivity: '14:18'
-        }
-      ],
+      authMethods: [],
+      // Configure Method Modal state
+      showConfigureMethod: false,
+      configureTarget: null,
+      activeSessions: [],
       securitySettings: {
         passwordPolicy: {
           minLength: 8,
@@ -514,6 +592,19 @@ export default {
           maxAttempts: 5,
           lockoutDuration: 15
         }
+      },
+      // LDAP/AD Directory Config
+      directoryConfig: {
+        host: '',
+        base_dn: '',
+        bind_dn: '',
+        bind_password: '',
+        use_ssl: false,
+        use_tls: false,
+      },
+      ldapTest: {
+        ok: null,
+        message: '',
       },
       formErrors: {
         passwordPolicy: {},
@@ -560,6 +651,7 @@ export default {
         this.fetchMethods(),
         this.refreshSessions(),
         this.fetchSecuritySettings(),
+        this.fetchDirectoryConfig(),
       ])
     },
     // Toast helpers
@@ -595,7 +687,17 @@ export default {
       try {
         const methods = await getAuthMethods()
         // Expect an array of {id,name,type,description,enabled,userCount,lastUpdated}
-        this.authMethods = Array.isArray(methods) ? methods : []
+        const arr = Array.isArray(methods) ? methods : []
+        // normalize
+        this.authMethods = arr.map((m, idx) => ({
+          id: m?.id ?? `m-${idx}`,
+          name: (m?.name ?? '').toString(),
+          type: ['password','mfa','sso','social'].includes(m?.type) ? m.type : 'password',
+          description: (m?.description ?? '').toString(),
+          enabled: Boolean(m?.enabled),
+          userCount: Number.isFinite(Number(m?.userCount)) ? Number(m.userCount) : 0,
+          lastUpdated: (m?.lastUpdated ?? '').toString()
+        }))
       } catch (e) {
         this.showError(e?.response?.data?.message || 'Falha ao carregar métodos')
       } finally {
@@ -669,12 +771,52 @@ export default {
       this.loading.sessions = true
       try {
         const sessions = await getSessions()
-        this.activeSessions = Array.isArray(sessions) ? sessions : []
+        const arr = Array.isArray(sessions) ? sessions : []
+        this.activeSessions = arr.map((s, idx) => ({
+          id: s?.id ?? `s-${idx}`,
+          user: (s && s.user && (typeof s.user === 'object')) ? s.user : null,
+          ipAddress: (s?.ipAddress ?? '').toString(),
+          device: (s?.device ?? '').toString(),
+          startTime: (s?.startTime ?? '').toString(),
+          lastActivity: (s?.lastActivity ?? '').toString()
+        }))
       } catch (e) {
         this.showError(e?.response?.data?.message || 'Falha ao carregar sessões')
       } finally {
         this.loading.sessions = false
       }
+    },
+    configureMethod(method) {
+      this.configureTarget = JSON.parse(JSON.stringify(method))
+      this.showConfigureMethod = true
+    },
+    async applyConfigureMethod() {
+      if (!this.configureTarget) return
+      const payload = {
+        name: this.configureTarget.name,
+        description: this.configureTarget.description,
+        enabled: this.configureTarget.enabled,
+      }
+      this.loading.updateMethod = true
+      try {
+        const updated = await updateAuthMethod(this.configureTarget.id, payload)
+        const idx = this.authMethods.findIndex(m => m.id === this.configureTarget.id)
+        if (idx !== -1) {
+          const merged = { ...this.authMethods[idx], ...updated }
+          this.$set ? this.$set(this.authMethods, idx, merged) : (this.authMethods[idx] = merged)
+        }
+        this.showSuccess('Método atualizado com sucesso')
+        this.showConfigureMethod = false
+        this.configureTarget = null
+      } catch (e) {
+        this.showError(e?.response?.data?.message || 'Falha ao atualizar método')
+      } finally {
+        this.loading.updateMethod = false
+      }
+    },
+    cancelConfigureMethod() {
+      this.showConfigureMethod = false
+      this.configureTarget = null
     },
     requestForceLogout(session) {
       this.forceLogoutTarget = session

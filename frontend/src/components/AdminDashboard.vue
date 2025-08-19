@@ -37,6 +37,7 @@ import AdminOverview from './modules/AdminOverview.vue'
 import AdminUsers from './modules/AdminUsers.vue'
 import AdminOnboarding from './modules/AdminOnboarding.vue'
 import AdminSimulado from './modules/AdminSimulado.vue'
+import AdminSimuladoCategories from './modules/AdminSimuladoCategories.vue'
 import AdminCursos from './modules/AdminCursos.vue'
 import AdminGamificacao from './modules/AdminGamificacao.vue'
 import AdminCertificados from './modules/AdminCertificados.vue'
@@ -54,6 +55,7 @@ export default {
     AdminUsers,
     AdminOnboarding,
     AdminSimulado,
+    AdminSimuladoCategories,
     AdminCursos,
     AdminGamificacao,
     AdminCertificados,
@@ -73,6 +75,7 @@ export default {
       overview: 'AdminOverview',
       users: 'AdminUsers',
       simulado: 'AdminSimulado',
+      'simulado-categories': 'AdminSimuladoCategories',
       onboarding: 'AdminOnboarding',
       cursos: 'AdminCursos',
       gamificacao: 'AdminGamificacao',
@@ -80,7 +83,8 @@ export default {
       audit: 'AdminAudit',
       security: 'AdminSecurity',
       'role-mappings': 'AdminRoleMappings',
-      settings: 'AdminSettings'
+      settings: 'AdminSettings',
+      'simulado-categories': 'AdminSimuladoCategories'
     }
 
     // Mapeamento de permissões por aba
@@ -95,7 +99,8 @@ export default {
       audit: ['audit.view'],
       security: ['security.view'],
       'role-mappings': ['users.manage'],
-      settings: ['admin.dashboard.view']
+      settings: ['admin.dashboard.view'],
+      'simulado-categories': ['admin.dashboard.view']
     }
 
     const currentComponent = computed(() => {

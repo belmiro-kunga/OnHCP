@@ -42,5 +42,13 @@ export const adminSimuladoApi = {
   async createCategory(name) {
     const { data } = await api.post('/admin/simulado-categories', { name })
     return data
+  },
+  async updateCategory(id, name) {
+    const { data } = await api.put(`/admin/simulado-categories/${id}`, { name })
+    return data
+  },
+  async deleteCategory(id) {
+    const { data } = await api.delete(`/admin/simulado-categories/${id}`)
+    return data
   }
 }

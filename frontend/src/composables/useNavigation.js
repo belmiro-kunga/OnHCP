@@ -39,6 +39,11 @@ export function useNavigation() {
       icon: 'IconClipboard'
     },
     { 
+      id: 'simulado-categories', 
+      name: 'Categorias',
+      icon: 'IconChart'
+    },
+    { 
       id: 'cursos', 
       name: 'Cursos',
       icon: 'IconBook'

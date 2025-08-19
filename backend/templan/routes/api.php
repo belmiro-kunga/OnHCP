@@ -57,6 +57,8 @@ Route::delete('/admin/assignments/{assignment}', [AdminSimuladoAssignmentControl
 Route::middleware('auth:sanctum')->prefix('admin/simulado-categories')->group(function () {
     Route::get('/', [SimuladoCategoryController::class, 'index']);
     Route::post('/', [SimuladoCategoryController::class, 'store']);
+    Route::put('/{category}', [SimuladoCategoryController::class, 'update']);
+    Route::delete('/{category}', [SimuladoCategoryController::class, 'destroy']);
 });
 
 // ------------------------------------------------------------

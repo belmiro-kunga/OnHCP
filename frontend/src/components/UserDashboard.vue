@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-bold text-gray-900">Painel do Utilizador</h1>
           </div>
           <div class="flex items-center space-x-4">
-            <span class="text-sm text-gray-600">Bem-vindo, Dr. João Silva</span>
+            <span class="text-sm text-gray-600">Bem-vindo, {{ userName || 'Utilizador' }}</span>
             <button
               @click="logout"
               class="text-sm text-red-600 hover:text-red-800 font-medium"
@@ -35,7 +35,7 @@
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Onboarding</p>
-              <p class="text-2xl font-bold text-gray-900">85%</p>
+              <p class="text-2xl font-bold text-gray-900">{{ onboardingProgress }}%</p>
             </div>
           </div>
         </div>
@@ -52,7 +52,7 @@
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Documentos</p>
-              <p class="text-2xl font-bold text-gray-900">12/15</p>
+              <p class="text-2xl font-bold text-gray-900">{{ coursesCompleted }}</p>
             </div>
           </div>
         </div>
@@ -68,7 +68,7 @@
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Próximas Tarefas</p>
-              <p class="text-2xl font-bold text-gray-900">3</p>
+              <p class="text-2xl font-bold text-gray-900">{{ upcomingTasks }}</p>
             </div>
           </div>
         </div>
@@ -147,12 +147,18 @@
       <div class="mt-8">
         <div class="card">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <button class="btn-primary">
               Enviar Documento
             </button>
             <button class="btn-secondary">
               Ver Formações
+            </button>
+            <button 
+              @click="goToSimulados"
+              class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+            >
+              Simulados
             </button>
             <button class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200">
               Agendar Reunião
@@ -170,10 +176,21 @@
 <script>
 export default {
   name: 'UserDashboard',
+  data() {
+    return {
+      userName: '',
+      onboardingProgress: 0,
+      coursesCompleted: 0,
+      upcomingTasks: 0
+    }
+  },
   methods: {
     logout() {
       // Simular logout
       this.$router.push('/')
+    },
+    goToSimulados() {
+      this.$router.push('/simulados')
     }
   }
 }

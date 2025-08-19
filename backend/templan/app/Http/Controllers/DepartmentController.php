@@ -19,7 +19,12 @@ class DepartmentController extends Controller
 
         // Filter by active status if requested
         if ($request->has('active')) {
-            $query->where('is_active', $request->boolean('active'));
+            $query->where('active', $request->boolean('active'));
+        }
+
+        // Filter by parent department
+        if ($request->has('parent_id')) {
+            $query->where('parent_id', $request->get('parent_id'));
         }
 
         // Search functionality
@@ -33,8 +38,8 @@ class DepartmentController extends Controller
         }
 
         // Load relationships and counts
-        $query->with('manager:id,name,email')
-              ->withCount('users');
+        $query->with(['manager:id,name,email', 'parent:id,name'])
+              ->withCount(['users', 'children', 'jobPositions']);
 
         // Pagination
         $perPage = $request->get('per_page', 15);
@@ -49,16 +54,24 @@ class DepartmentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:departments,name',
-            'description' => 'nullable|string|max:500',
-            'code' => 'nullable|string|max:10|unique:departments,code',
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:departments,code',
+            'description' => 'nullable|string',
+            'parent_id' => 'nullable|exists:departments,id',
             'manager_id' => 'nullable|exists:users,id',
-            'is_active' => 'boolean'
+            'cost_center' => 'nullable|string|max:100',
+            'location' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'nullable|string|max:50',
+            'metadata' => 'nullable|array',
+            'external_id' => 'nullable|string|max:100',
+            'ad_group' => 'nullable|string|max:255',
+            'active' => 'boolean'
         ]);
 
         $department = Department::create($validated);
-        $department->load('manager:id,name,email');
-        $department->loadCount('users');
+        $department->load(['manager:id,name,email', 'parent:id,name']);
+        $department->loadCount(['users', 'children', 'jobPositions']);
 
         return response()->json([
             'message' => 'Departamento criado com sucesso.',
@@ -71,8 +84,13 @@ class DepartmentController extends Controller
      */
     public function show(Department $department): JsonResponse
     {
-        $department->load('manager:id,name,email', 'users:id,name,email,role_id')
-                   ->loadCount('users');
+        $department->load([
+            'manager:id,name,email', 
+            'parent:id,name',
+            'children:id,name,parent_id',
+            'users:id,name,email',
+            'jobPositions:id,title,department_id'
+        ])->loadCount(['users', 'children', 'jobPositions']);
 
         return response()->json($department);
     }
@@ -83,16 +101,28 @@ class DepartmentController extends Controller
     public function update(Request $request, Department $department): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('departments')->ignore($department->id)],
-            'description' => 'nullable|string|max:500',
-            'code' => ['nullable', 'string', 'max:10', Rule::unique('departments')->ignore($department->id)],
+            'name' => 'required|string|max:255',
+            'code' => ['required', 'string', 'max:50', Rule::unique('departments')->ignore($department->id)],
+            'description' => 'nullable|string',
+            'parent_id' => ['nullable', 'exists:departments,id', function ($attribute, $value, $fail) use ($department) {
+                if ($value == $department->id) {
+                    $fail('Um departamento não pode ser pai de si mesmo.');
+                }
+            }],
             'manager_id' => 'nullable|exists:users,id',
-            'is_active' => 'boolean'
+            'cost_center' => 'nullable|string|max:100',
+            'location' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'nullable|string|max:50',
+            'metadata' => 'nullable|array',
+            'external_id' => 'nullable|string|max:100',
+            'ad_group' => 'nullable|string|max:255',
+            'active' => 'boolean'
         ]);
 
         $department->update($validated);
-        $department->load('manager:id,name,email');
-        $department->loadCount('users');
+        $department->load(['manager:id,name,email', 'parent:id,name']);
+        $department->loadCount(['users', 'children', 'jobPositions']);
 
         return response()->json([
             'message' => 'Departamento atualizado com sucesso.',
@@ -137,11 +167,11 @@ class DepartmentController extends Controller
      */
     public function toggleStatus(Department $department): JsonResponse
     {
-        $department->update(['is_active' => !$department->is_active]);
-        $department->load('manager:id,name,email');
-        $department->loadCount('users');
+        $department->update(['active' => !$department->active]);
+        $department->load(['manager:id,name,email', 'parent:id,name']);
+        $department->loadCount(['users', 'children', 'jobPositions']);
 
-        $status = $department->is_active ? 'ativado' : 'desativado';
+        $status = $department->active ? 'ativado' : 'desativado';
         
         return response()->json([
             'message' => "Departamento {$status} com sucesso.",

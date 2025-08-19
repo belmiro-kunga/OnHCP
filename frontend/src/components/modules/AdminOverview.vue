@@ -167,31 +167,12 @@ export default {
   data() {
     return {
       stats: {
-        totalUsers: 1247,
-        completedOnboarding: 892,
-        pending: 355,
-        issues: 23
+        totalUsers: 0,
+        completedOnboarding: 0,
+        pending: 0,
+        issues: 0
       },
-      recentActivities: [
-        {
-          id: 1,
-          type: 'success',
-          message: 'Dr. João Silva completou a integração',
-          time: 'Há 2 horas'
-        },
-        {
-          id: 2,
-          type: 'info',
-          message: '15 novos utilizadores registados hoje',
-          time: 'Há 4 horas'
-        },
-        {
-          id: 3,
-          type: 'warning',
-          message: '5 documentos a aguardar aprovação',
-          time: 'Há 6 horas'
-        }
-      ]
+      recentActivities: []
     }
   },
   computed: {

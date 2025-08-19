@@ -180,7 +180,7 @@
       </div>
       <div>
         <select v-model="statusFilter" class="form-input">
-          <option value="">Todos os Estados</option>
+          <option value="">Todos os Status</option>
           <option value="Ativo">Ativo</option>
           <option value="Pendente">Pendente</option>
           <option value="Inativo">Inativo</option>
@@ -823,7 +823,7 @@
                 </div>
                 <div class="md:col-span-5">
                   <label class="form-label">Email <span class="text-red-500">*</span></label>
-                  <input v-model="newUser.email" type="email" class="form-input" required placeholder="exemplo@hospital.com" />
+                  <input v-model="newUser.email" type="email" class="form-input" required placeholder="utilizador@empresa.com" />
                 </div>
               </div>
             </div>
@@ -863,7 +863,7 @@
                   <input v-model="newUser.startDate" type="date" class="form-input" />
                 </div>
                 <div class="md:col-span-2">
-                  <label class="form-label">Estado</label>
+                  <label class="form-label">Status</label>
                   <select v-model="newUser.status" class="form-input" required>
                     <option value="Ativo">Ativo</option>
                     <option value="Pendente">Pendente</option>
@@ -884,7 +884,7 @@
                 </div>
                 <div class="md:col-span-4">
                   <label class="form-label">Telefone</label>
-                  <input v-model="newUser.phone" type="tel" class="form-input" placeholder="+351 912 345 678" />
+                  <input v-model="newUser.phone" type="tel" class="form-input" placeholder="+351 XXX XXX XXX" />
                 </div>
               </div>
             </div>
@@ -925,7 +925,7 @@
                 </div>
                 <div class="md:col-span-5">
                   <label class="form-label">Email <span class="text-red-500">*</span></label>
-                  <input v-model="editUserForm.email" type="email" class="form-input" required placeholder="exemplo@hospital.com" />
+                  <input v-model="editUserForm.email" type="email" class="form-input" required placeholder="utilizador@empresa.com" />
                 </div>
               </div>
             </div>
@@ -965,7 +965,7 @@
                   <input v-model="editUserForm.startDate" type="date" class="form-input" />
                 </div>
                 <div class="md:col-span-2">
-                  <label class="form-label">Estado</label>
+                  <label class="form-label">Status</label>
                   <select v-model="editUserForm.status" class="form-input" required>
                     <option value="Ativo">Ativo</option>
                     <option value="Pendente">Pendente</option>
@@ -986,7 +986,7 @@
                 </div>
                 <div class="md:col-span-4">
                   <label class="form-label">Telefone</label>
-                  <input v-model="editUserForm.phone" type="tel" class="form-input" placeholder="+351 912 345 678" />
+                  <input v-model="editUserForm.phone" type="tel" class="form-input" placeholder="+351 XXX XXX XXX" />
                 </div>
               </div>
             </div>
@@ -1597,54 +1597,14 @@ export default {
       // Arrays dinâmicos para cargos e departamentos
       availableRoles: [],
       availableDepartments: [],
-      registrationRequests: [
-        {
-          id: 1,
-          name: 'Ana Costa',
-          email: 'ana.costa@hospital.com',
-          role: 'Enfermeira',
-          requestDate: '16/01/2024 09:30'
-        },
-        {
-          id: 2,
-          name: 'Pedro Almeida',
-          email: 'pedro.almeida@hospital.com',
-          role: 'Técnico',
-          requestDate: '16/01/2024 11:15'
-        }
-      ],
+      registrationRequests: [],
       recoveryStats: {
-        today: 12,
-        week: 45,
-        pending: 8,
-        successRate: 94
+        today: 0,
+        week: 0,
+        pending: 0,
+        successRate: 0
       },
-      passwordRecoveryRequests: [
-        {
-          id: 1,
-          user: { name: 'Dr. João Silva', email: 'joao@hospital.com' },
-          method: 'Email',
-          status: 'Pendente',
-          requestDate: '15/01/2024 14:30',
-          expiresAt: '16/01/2024 14:30'
-        },
-        {
-          id: 2,
-          user: { name: 'Dra. Maria Santos', email: 'maria@hospital.com' },
-          method: 'SMS',
-          status: 'Aprovado',
-          requestDate: '15/01/2024 10:15',
-          expiresAt: '16/01/2024 10:15'
-        },
-        {
-          id: 3,
-          user: { name: 'Carlos Oliveira', email: 'carlos@hospital.com' },
-          method: 'Email',
-          status: 'Expirado',
-          requestDate: '14/01/2024 16:45',
-          expiresAt: '15/01/2024 16:45'
-        }
-      ],
+      passwordRecoveryRequests: [],
       recoverySettings: {
         expirationHours: 24,
         maxAttemptsPerDay: 3,
@@ -1653,94 +1613,7 @@ export default {
         allowSMS: true,
         allowSecurityQuestions: false
       },
-      users: [
-        { 
-          id: 1, 
-          name: 'Dr. João Silva', 
-          email: 'joao@hospital.com', 
-          role: 'Médico', 
-          status: 'Ativo', 
-          progress: 100, 
-          registrationDate: '15/01/2024',
-          mfaEnabled: true,
-          lastLogin: '15/01/2024 14:30',
-          lastLoginDevice: 'Chrome/Windows',
-          selected: false,
-          birthDate: '1980-05-15',
-          phone: '+351 912 345 678',
-          department: 'Cardiologia',
-          startDate: '2020-03-01',
-
-          avatar: null,
-          completedCourses: 12,
-          certificates: 8
-        },
-        { 
-          id: 2, 
-          name: 'Dra. Maria Santos', 
-          email: 'maria@hospital.com', 
-          role: 'Médico', 
-          status: 'Ativo', 
-          progress: 85, 
-          registrationDate: '12/01/2024',
-          mfaEnabled: true,
-          lastLogin: '15/01/2024 10:15',
-          lastLoginDevice: 'Safari/macOS',
-          selected: false
-        },
-        { 
-          id: 3, 
-          name: 'Dr. Pedro Costa', 
-          email: 'pedro@hospital.com', 
-          role: 'Médico', 
-          status: 'Pendente', 
-          progress: 45, 
-          registrationDate: '10/01/2024',
-          mfaEnabled: false,
-          lastLogin: '14/01/2024 16:45',
-          lastLoginDevice: 'Firefox/Linux',
-          selected: false
-        },
-        { 
-          id: 4, 
-          name: 'Dra. Ana Lima', 
-          email: 'ana@hospital.com', 
-          role: 'Enfermeiro', 
-          status: 'Inativo', 
-          progress: 20, 
-          registrationDate: '08/01/2024',
-          mfaEnabled: false,
-          lastLogin: '10/01/2024 09:30',
-          lastLoginDevice: 'Chrome/Android',
-          selected: false
-        },
-        { 
-          id: 5, 
-          name: 'Carlos Oliveira', 
-          email: 'carlos@hospital.com', 
-          role: 'Técnico', 
-          status: 'Ativo', 
-          progress: 90, 
-          registrationDate: '05/01/2024',
-          mfaEnabled: true,
-          lastLogin: '15/01/2024 08:20',
-          lastLoginDevice: 'Edge/Windows',
-          selected: false
-        },
-        { 
-          id: 6, 
-          name: 'Fernanda Silva', 
-          email: 'fernanda@hospital.com', 
-          role: 'Administrativo', 
-          status: 'Pendente', 
-          progress: 60, 
-          registrationDate: '03/01/2024',
-          mfaEnabled: false,
-          lastLogin: '12/01/2024 15:10',
-          lastLoginDevice: 'Chrome/Windows',
-          selected: false
-        }
-      ]
+      users: []
     }
   },
   async mounted() {
@@ -2032,18 +1905,29 @@ export default {
     cancelDelete() {
       this.showDeleteConfirmModal = false
       this.deleteTargetUser = null
+      // Forçar atualização da reatividade
+      this.$nextTick(() => {
+        this.showDeleteConfirmModal = false
+      })
     },
     async confirmDelete() {
       try {
         const target = this.deleteTargetUser
-        if (!target?.id) return this.cancelDelete()
+        if (!target?.id) {
+          this.cancelDelete()
+          return
+        }
+        
         await this.apiDeleteUser(target.id)
         await this.fetchUsers()
         this.showSuccess(`Conta de ${target.name || target.email} eliminada com sucesso.`)
+        
+        // Garantir que o modal feche após operação bem-sucedida
+        this.cancelDelete()
       } catch (e) {
         console.error('Erro ao eliminar utilizador:', e)
         this.showError(e?.response?.data?.message || 'Falha ao eliminar a conta.')
-      } finally {
+        // Fechar modal mesmo em caso de erro
         this.cancelDelete()
       }
     },
@@ -2234,14 +2118,14 @@ export default {
     
     downloadTemplate() {
       const templateData = [{
-        name: 'Exemplo Nome',
-        email: 'exemplo@hospital.com',
-        role: 'Médico',
-        department: 'Cardiologia',
-        status: 'Ativo',
-        birthDate: '1980-01-01',
-        phone: '+351 912 345 678',
-        startDate: '2024-01-01'
+        name: '',
+        email: '',
+        role: '',
+        department: '',
+        status: 'Pendente',
+        birthDate: '',
+        phone: '',
+        startDate: ''
       }]
       
       const csvContent = this.generateCSV(templateData)

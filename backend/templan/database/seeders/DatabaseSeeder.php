@@ -25,5 +25,8 @@ class DatabaseSeeder extends Seeder
         
         // Create security data (IP policies and audit logs)
         $this->call(SecuritySeeder::class);
+        
+        // Create authentication and access data (role mappings, permissions, delegations, licenses)
+        $this->call(AuthAccessSeeder::class);
     }
 }

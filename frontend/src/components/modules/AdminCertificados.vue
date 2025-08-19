@@ -299,10 +299,10 @@ export default {
       showPreviewModal: false,
       previewData: {},
       stats: {
-        totalCertificados: 156,
-        certificadosEmitidos: 142,
-        certificadosPendentes: 14,
-        modelosAtivos: 6
+        totalCertificados: 0,
+        certificadosEmitidos: 0,
+        certificadosPendentes: 0,
+        modelosAtivos: 0
       },
       newTemplate: {
         nome: '',
@@ -311,90 +311,8 @@ export default {
         esquemaCores: '',
         orientacao: 'horizontal'
       },
-      certificates: [
-        {
-          id: 1,
-          utilizador: 'Ana Silva',
-          email: 'ana.silva@empresa.com',
-          titulo: 'Segurança da Informação',
-          descricao: 'Curso completo de segurança',
-          tipo: 'curso',
-          dataEmissao: '2024-01-15',
-          status: 'emitido',
-          codigo: 'CERT-2024-001'
-        },
-        {
-          id: 2,
-          utilizador: 'João Santos',
-          email: 'joao.santos@empresa.com',
-          titulo: 'Especialista em Dados',
-          descricao: 'Conquista por análise de dados',
-          tipo: 'conquista',
-          dataEmissao: '2024-01-18',
-          status: 'emitido',
-          codigo: 'CERT-2024-002'
-        },
-        {
-          id: 3,
-          utilizador: 'Maria Costa',
-          email: 'maria.costa@empresa.com',
-          titulo: 'Gestão de Projetos',
-          descricao: 'Curso de metodologias ágeis',
-          tipo: 'curso',
-          dataEmissao: '2024-01-20',
-          status: 'pendente',
-          codigo: 'CERT-2024-003'
-        },
-        {
-          id: 4,
-          utilizador: 'Pedro Oliveira',
-          email: 'pedro.oliveira@empresa.com',
-          titulo: 'Participação Ativa',
-          descricao: 'Participação em eventos',
-          tipo: 'participacao',
-          dataEmissao: '2024-01-22',
-          status: 'emitido',
-          codigo: 'CERT-2024-004'
-        }
-      ],
-      templates: [
-        {
-          id: 1,
-          nome: 'Certificado Padrão',
-          descricao: 'Modelo padrão para cursos gerais',
-          tipo: 'curso',
-          gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          utilizacoes: 45,
-          ativo: true
-        },
-        {
-          id: 2,
-          nome: 'Certificado Premium',
-          descricao: 'Modelo premium para especializações',
-          tipo: 'especializacao',
-          gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          utilizacoes: 23,
-          ativo: true
-        },
-        {
-          id: 3,
-          nome: 'Certificado de Conquista',
-          descricao: 'Modelo para distintivos e conquistas',
-          tipo: 'conquista',
-          gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-          utilizacoes: 67,
-          ativo: true
-        },
-        {
-          id: 4,
-          nome: 'Certificado de Participação',
-          descricao: 'Modelo para eventos e workshops',
-          tipo: 'participacao',
-          gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-          utilizacoes: 12,
-          ativo: false
-        }
-      ]
+      certificates: [],
+      templates: []
     }
   },
   computed: {

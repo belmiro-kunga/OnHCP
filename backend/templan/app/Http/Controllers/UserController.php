@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Services\RoleResolver;
@@ -16,11 +17,12 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $page = (int) $request->query('page', 1);
-        $perPage = (int) $request->query('per_page', 10);
+        $perPage = min((int) $request->query('per_page', 10), 100); // Limitar máximo de 100 itens
         $q = trim((string) $request->query('q', ''));
         $status = $request->query('status');
 
-        $query = User::with(['role', 'department']);
+        $query = User::with(['role:id,name', 'department:id,name'])
+                    ->select(['id', 'name', 'email', 'status', 'role_id', 'department_id', 'created_at']);
 
         if ($q !== '') {
             $query->where(function ($qBuilder) use ($q) {
@@ -34,7 +36,8 @@ class UserController extends Controller
             $query->where('status', $status);
         }
 
-        $paginator = $query->orderBy('id', 'desc')->paginate($perPage, ['*'], 'page', $page);
+        $paginator = $query->orderBy('created_at', 'desc')
+                          ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
             'data' => $paginator->items(),
@@ -57,6 +60,13 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
+        // Normalize inputs to reduce validation conflicts
+        if (isset($data['email'])) {
+            $data['email'] = strtolower(trim($data['email']));
+        }
+        if (isset($data['name'])) {
+            $data['name'] = trim($data['name']);
+        }
         $validator = Validator::make($data, [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -116,7 +126,7 @@ class UserController extends Controller
         $validator->validate();
 
         if (array_key_exists('name', $data)) $user->name = $data['name'];
-        if (array_key_exists('email', $data)) $user->email = $data['email'];
+        if (array_key_exists('email', $data)) $user->email = strtolower(trim($data['email']));
         if (!empty($data['password'])) $user->password = $data['password'];
         if (array_key_exists('role_id', $data)) $user->role_id = $data['role_id'];
         if (array_key_exists('department_id', $data)) $user->department_id = $data['department_id'];

@@ -155,23 +155,11 @@ export default {
     const filters = reactive({ search: '', severity: '' })
 
     // Demo/mock datasets
-    const activityLogs = reactive([
-      { id: 1, timestamp: '2025-08-15 09:31', user: 'admin', action: 'update', resource: 'users/5', ip: '192.168.0.10', userAgent: 'Chrome/Windows', severity: 'medium' },
-      { id: 2, timestamp: '2025-08-15 10:05', user: 'manager@corp', action: 'view', resource: 'users', ip: '192.168.0.22', userAgent: 'Firefox/Linux', severity: 'low' },
-      { id: 3, timestamp: '2025-08-16 08:12', user: 'guest', action: 'login_failed', resource: 'auth', ip: '10.1.2.3', userAgent: 'Safari/iOS', severity: 'high' },
-      { id: 4, timestamp: '2025-08-16 09:01', user: 'admin', action: 'export', resource: 'permissions', ip: '192.168.0.10', userAgent: 'Chrome/Windows', severity: 'low' },
-    ])
+    const activityLogs = reactive([])
 
-    const loginHistory = reactive([
-      { id: 1, timestamp: '2025-08-16 08:00', user: 'admin', ip: '192.168.0.10', browser: 'Chrome', device: 'Windows', success: true },
-      { id: 2, timestamp: '2025-08-16 08:05', user: 'guest', ip: '10.1.2.3', browser: 'Safari', device: 'iPhone', success: false },
-      { id: 3, timestamp: '2025-08-16 09:15', user: 'manager@corp', ip: '192.168.0.22', browser: 'Firefox', device: 'Linux', success: true },
-    ])
+    const loginHistory = reactive([])
 
-    const securityAlerts = reactive([
-      { id: 1, type: 'Falhas de Login', message: '5 tentativas falhas em 10min para guest', timestamp: '2025-08-16 08:10', ip: '10.1.2.3', userAgent: 'Safari/iOS', severity: 'high' },
-      { id: 2, type: 'Acesso Suspeito', message: 'Sessão iniciada de nova localização', timestamp: '2025-08-16 09:20', ip: '200.200.10.5', userAgent: 'Chrome/Android', severity: 'medium' },
-    ])
+    const securityAlerts = reactive([])
 
     const filteredActivityLogs = computed(() => {
       const q = filters.search.trim().toLowerCase()

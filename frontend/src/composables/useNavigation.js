@@ -53,7 +53,6 @@ export function useNavigation() {
       name: 'Certificados',
       icon: 'IconAward'
     },
-    
     {
       id: 'settings',
       name: 'Configurações',

@@ -100,9 +100,9 @@ export default {
     const searchQuery = ref('')
     const hasNotifications = ref(true)
     const user = ref({
-      name: 'Maria Santos',
-      role: 'Administradora',
-      initials: 'MS'
+      name: 'Utilizador',
+      role: 'Administrador',
+      initials: 'U'
     })
 
     const toggleMobileSearch = () => {

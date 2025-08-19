@@ -35,8 +35,8 @@ import AdminTopbar from './layout/AdminTopbar.vue'
 // Lazy loading dos módulos administrativos
 import AdminOverview from './modules/AdminOverview.vue'
 import AdminUsers from './modules/AdminUsers.vue'
-import AdminSimulado from './modules/AdminSimulado.vue'
 import AdminOnboarding from './modules/AdminOnboarding.vue'
+import AdminSimulado from './modules/AdminSimulado.vue'
 import AdminCursos from './modules/AdminCursos.vue'
 import AdminGamificacao from './modules/AdminGamificacao.vue'
 import AdminCertificados from './modules/AdminCertificados.vue'
@@ -52,8 +52,8 @@ export default {
     AdminTopbar,
     AdminOverview,
     AdminUsers,
-    AdminSimulado,
     AdminOnboarding,
+    AdminSimulado,
     AdminCursos,
     AdminGamificacao,
     AdminCertificados,

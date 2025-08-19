@@ -29,7 +29,7 @@
               type="email"
               required
               class="form-input"
-              placeholder="admin@hospital.com"
+              placeholder="seu.email@empresa.com"
             />
           </div>
 

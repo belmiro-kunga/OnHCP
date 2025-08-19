@@ -308,10 +308,10 @@ export default {
       showCreateBadgeModal: false,
       showCreateChallengeModal: false,
       stats: {
-        totalPontos: 45680,
-        distintivosAtivos: 12,
-        utilizadoresAtivos: 89,
-        desafiosAtivos: 5
+        totalPontos: 0,
+        distintivosAtivos: 0,
+        utilizadoresAtivos: 0,
+        desafiosAtivos: 0
       },
       newBadge: {
         nome: '',
@@ -327,110 +327,9 @@ export default {
         pontos: 100,
         dataFim: ''
       },
-      badges: [
-        {
-          id: 1,
-          nome: 'Primeiro Passo',
-          descricao: 'Complete o primeiro curso',
-          icon: '🎯',
-          color: '#10B981',
-          conquistado: 45
-        },
-        {
-          id: 2,
-          nome: 'Especialista',
-          descricao: 'Complete 5 cursos',
-          icon: '🏆',
-          color: '#F59E0B',
-          conquistado: 23
-        },
-        {
-          id: 3,
-          nome: 'Mestre',
-          descricao: 'Complete 10 cursos',
-          icon: '👑',
-          color: '#8B5CF6',
-          conquistado: 12
-        },
-        {
-          id: 4,
-          nome: 'Participativo',
-          descricao: 'Participe em 3 desafios',
-          icon: '🤝',
-          color: '#EF4444',
-          conquistado: 34
-        }
-      ],
-      challenges: [
-        {
-          id: 1,
-          nome: 'Desafio de Segurança',
-          descricao: 'Complete todos os módulos de segurança',
-          tipo: 'Individual',
-          pontos: 500,
-          participantes: 28,
-          dataFim: '2024-02-15',
-          status: 'ativo'
-        },
-        {
-          id: 2,
-          nome: 'Maratona de Aprendizagem',
-          descricao: 'Complete 3 cursos em uma semana',
-          tipo: 'Individual',
-          pontos: 300,
-          participantes: 15,
-          dataFim: '2024-02-10',
-          status: 'ativo'
-        },
-        {
-          id: 3,
-          nome: 'Equipa do Mês',
-          descricao: 'Equipa com maior pontuação',
-          tipo: 'Equipa',
-          pontos: 1000,
-          participantes: 8,
-          dataFim: '2024-02-28',
-          status: 'ativo'
-        }
-      ],
-      rankings: [
-        {
-          id: 1,
-          nome: 'Ana Silva',
-          email: 'ana.silva@empresa.com',
-          pontos: 2450,
-          distintivos: 8,
-          nivel: 5,
-          ultimaAtividade: '2024-01-20'
-        },
-        {
-          id: 2,
-          nome: 'João Santos',
-          email: 'joao.santos@empresa.com',
-          pontos: 2180,
-          distintivos: 6,
-          nivel: 4,
-          ultimaAtividade: '2024-01-19'
-        },
-        {
-          id: 3,
-          nome: 'Maria Costa',
-          email: 'maria.costa@empresa.com',
-          pontos: 1950,
-          distintivos: 7,
-          nivel: 4,
-          ultimaAtividade: '2024-01-20'
-        },
-        {
-          id: 4,
-          nome: 'Pedro Oliveira',
-          email: 'pedro.oliveira@empresa.com',
-          pontos: 1720,
-          distintivos: 5,
-          nivel: 3,
-          ultimaAtividade: '2024-01-18'
-        }
-      ]
+      badges: [],
+      challenges: [],
+      rankings: []
     }
   },
   methods: {

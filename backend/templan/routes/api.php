@@ -16,6 +16,18 @@ use App\Http\Controllers\RoleMappingController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\Ms365AuthController;
 use App\Http\Controllers\EmailController;
+use App\Http\Controllers\JobPositionController;
+use App\Http\Controllers\OrganizationalStructureController;
+use App\Http\Controllers\ExternalIntegrationController;
+use App\Http\Controllers\SyncLogController;
+use App\Http\Controllers\OnboardingRoadmapController;
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentSignatureController;
+use App\Http\Controllers\UserOnboardingProgressController;
+use App\Http\Controllers\AdminSimuladoController;
+use App\Http\Controllers\AdminSimuladoAssignmentController;
+use App\Http\Controllers\UserSimuladoController;
+use App\Http\Controllers\SimuladoCategoryController;
 
 Route::get('/health', function () {
     return response()->json([
@@ -24,6 +36,33 @@ Route::get('/health', function () {
         'timestamp' => now()->toISOString()
     ]);
 });
+
+// ------------------------------------------------------------
+// Admin Simulados CRUD + Assignments (dev: public; secure with auth in prod)
+// ------------------------------------------------------------
+Route::prefix('admin/simulados')->group(function () {
+    Route::get('/', [AdminSimuladoController::class, 'index']);
+    Route::post('/', [AdminSimuladoController::class, 'store']);
+    Route::get('/{simulado}', [AdminSimuladoController::class, 'show']);
+    Route::put('/{simulado}', [AdminSimuladoController::class, 'update']);
+    Route::delete('/{simulado}', [AdminSimuladoController::class, 'destroy']);
+
+    // Assignments
+    Route::get('/{simulado}/assignments', [AdminSimuladoAssignmentController::class, 'index']);
+    Route::post('/{simulado}/assignments', [AdminSimuladoAssignmentController::class, 'store']);
+});
+Route::delete('/admin/assignments/{assignment}', [AdminSimuladoAssignmentController::class, 'destroy']);
+
+// Categories for Simulados
+Route::middleware('auth:sanctum')->prefix('admin/simulado-categories')->group(function () {
+    Route::get('/', [SimuladoCategoryController::class, 'index']);
+    Route::post('/', [SimuladoCategoryController::class, 'store']);
+});
+
+// ------------------------------------------------------------
+// User endpoints for Simulados
+// ------------------------------------------------------------
+Route::get('/me/simulados', [UserSimuladoController::class, 'mySimulados']);
 
 // Email (SMTP) config + test (protected)
 Route::middleware('auth:sanctum')->prefix('email')->group(function () {
@@ -406,6 +445,113 @@ Route::middleware('auth:sanctum')->prefix('departments')->group(function () {
     Route::post('/{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->middleware('can:users.manage');
 });
 
+// Job Positions (protected)
+Route::middleware('auth:sanctum')->prefix('job-positions')->group(function () {
+    Route::get('/', [JobPositionController::class, 'index'])->middleware('can:users.manage');
+    Route::get('/options', [JobPositionController::class, 'options']);
+    Route::get('/by-department/{department}', [JobPositionController::class, 'byDepartment'])->middleware('can:users.manage');
+    Route::get('/salary-ranges', [JobPositionController::class, 'salaryRanges'])->middleware('can:users.manage');
+    Route::get('/{jobPosition}', [JobPositionController::class, 'show'])->middleware('can:users.manage');
+    Route::post('/', [JobPositionController::class, 'store'])->middleware('can:users.manage');
+    Route::put('/{jobPosition}', [JobPositionController::class, 'update'])->middleware('can:users.manage');
+    Route::delete('/{jobPosition}', [JobPositionController::class, 'destroy'])->middleware('can:users.manage');
+    Route::post('/{jobPosition}/toggle-status', [JobPositionController::class, 'toggleStatus'])->middleware('can:users.manage');
+});
+
+// Organizational Structure (protected)
+Route::middleware('auth:sanctum')->prefix('organizational-structure')->group(function () {
+    Route::get('/', [OrganizationalStructureController::class, 'index'])->middleware('can:users.manage');
+    Route::get('/by-user/{user}', [OrganizationalStructureController::class, 'byUser'])->middleware('can:users.manage');
+    Route::get('/by-department/{department}', [OrganizationalStructureController::class, 'byDepartment'])->middleware('can:users.manage');
+    Route::get('/current-by-user/{user}', [OrganizationalStructureController::class, 'currentByUser'])->middleware('can:users.manage');
+    Route::get('/organizational-chart', [OrganizationalStructureController::class, 'organizationalChart'])->middleware('can:users.view');
+    Route::get('/team-members/{manager}', [OrganizationalStructureController::class, 'teamMembers'])->middleware('can:users.view');
+    Route::get('/{organizationalStructure}', [OrganizationalStructureController::class, 'show'])->middleware('can:users.manage');
+    Route::post('/', [OrganizationalStructureController::class, 'store'])->middleware('can:users.manage');
+    Route::put('/{organizationalStructure}', [OrganizationalStructureController::class, 'update'])->middleware('can:users.manage');
+    Route::delete('/{organizationalStructure}', [OrganizationalStructureController::class, 'destroy'])->middleware('can:users.manage');
+    Route::post('/{organizationalStructure}/toggle-status', [OrganizationalStructureController::class, 'toggleStatus'])->middleware('can:users.manage');
+});
+
+// External Integrations (protected)
+Route::middleware('auth:sanctum')->prefix('external-integrations')->group(function () {
+    Route::get('/', [ExternalIntegrationController::class, 'index'])->middleware('can:users.manage');
+    Route::get('/needs-sync', [ExternalIntegrationController::class, 'needsSync'])->middleware('can:users.manage');
+    Route::get('/{externalIntegration}', [ExternalIntegrationController::class, 'show'])->middleware('can:users.manage');
+    Route::get('/{externalIntegration}/statistics', [ExternalIntegrationController::class, 'statistics'])->middleware('can:users.manage');
+    Route::post('/', [ExternalIntegrationController::class, 'store'])->middleware('can:users.manage');
+    Route::put('/{externalIntegration}', [ExternalIntegrationController::class, 'update'])->middleware('can:users.manage');
+    Route::delete('/{externalIntegration}', [ExternalIntegrationController::class, 'destroy'])->middleware('can:users.manage');
+    Route::post('/{externalIntegration}/toggle-status', [ExternalIntegrationController::class, 'toggleStatus'])->middleware('can:users.manage');
+    Route::post('/{externalIntegration}/test-connection', [ExternalIntegrationController::class, 'testConnection'])->middleware('can:users.manage');
+    Route::post('/{externalIntegration}/trigger-sync', [ExternalIntegrationController::class, 'triggerSync'])->middleware('can:users.manage');
+});
+
+// Sync Logs (protected)
+Route::middleware('auth:sanctum')->prefix('sync-logs')->group(function () {
+    Route::get('/', [SyncLogController::class, 'index'])->middleware('can:users.manage');
+    Route::get('/recent', [SyncLogController::class, 'recent'])->middleware('can:users.view');
+    Route::get('/statistics', [SyncLogController::class, 'statistics'])->middleware('can:users.manage');
+    Route::get('/by-integration/{integration}', [SyncLogController::class, 'byIntegration'])->middleware('can:users.manage');
+    Route::get('/{syncLog}', [SyncLogController::class, 'show'])->middleware('can:users.manage');
+    Route::post('/', [SyncLogController::class, 'store'])->middleware('can:users.manage');
+    Route::put('/{syncLog}', [SyncLogController::class, 'update'])->middleware('can:users.manage');
+    Route::delete('/{syncLog}', [SyncLogController::class, 'destroy'])->middleware('can:users.manage');
+    Route::post('/{syncLog}/cancel', [SyncLogController::class, 'cancel'])->middleware('can:users.manage');
+    Route::post('/{syncLog}/retry', [SyncLogController::class, 'retry'])->middleware('can:users.manage');
+});
+
+// Onboarding Roadmaps (protected)
+Route::middleware('auth:sanctum')->prefix('onboarding-roadmaps')->group(function () {
+    Route::get('/', [OnboardingRoadmapController::class, 'index'])->middleware('can:users.view');
+    Route::post('/', [OnboardingRoadmapController::class, 'store'])->middleware('can:users.manage');
+    Route::get('/departments', [OnboardingRoadmapController::class, 'departments'])->middleware('can:users.view');
+    Route::get('/{roadmap}', [OnboardingRoadmapController::class, 'show'])->middleware('can:users.view');
+    Route::put('/{roadmap}', [OnboardingRoadmapController::class, 'update'])->middleware('can:users.manage');
+    Route::delete('/{roadmap}', [OnboardingRoadmapController::class, 'destroy'])->middleware('can:users.manage');
+    Route::post('/{roadmap}/duplicate', [OnboardingRoadmapController::class, 'duplicate'])->middleware('can:users.manage');
+});
+
+// Documents (protected)
+Route::middleware('auth:sanctum')->prefix('documents')->group(function () {
+    Route::get('/', [DocumentController::class, 'index'])->middleware('can:users.view');
+    Route::post('/', [DocumentController::class, 'store'])->middleware('can:users.manage');
+    Route::get('/types', [DocumentController::class, 'types'])->middleware('can:users.view');
+    Route::get('/departments', [DocumentController::class, 'departments'])->middleware('can:users.view');
+    Route::get('/{document}', [DocumentController::class, 'show'])->middleware('can:users.view');
+    Route::put('/{document}', [DocumentController::class, 'update'])->middleware('can:users.manage');
+    Route::delete('/{document}', [DocumentController::class, 'destroy'])->middleware('can:users.manage');
+    Route::get('/{document}/download', [DocumentController::class, 'download'])->middleware('can:users.view');
+    Route::post('/{document}/replace-file', [DocumentController::class, 'replaceFile'])->middleware('can:users.manage');
+});
+
+// Document Signatures (protected)
+Route::middleware('auth:sanctum')->prefix('document-signatures')->group(function () {
+    Route::get('/', [DocumentSignatureController::class, 'index']);
+    Route::get('/pending', [DocumentSignatureController::class, 'pending']);
+    Route::get('/statistics', [DocumentSignatureController::class, 'statistics'])->middleware('can:users.manage');
+    Route::post('/documents/{document}/sign', [DocumentSignatureController::class, 'sign']);
+    Route::post('/documents/{document}/reject', [DocumentSignatureController::class, 'reject']);
+    Route::get('/documents/{document}/status', [DocumentSignatureController::class, 'status']);
+    Route::get('/documents/{document}/signatures', [DocumentSignatureController::class, 'documentSignatures'])->middleware('can:users.manage');
+    Route::get('/{signature}', [DocumentSignatureController::class, 'show']);
+});
+
+// User Onboarding Progress (protected)
+Route::middleware('auth:sanctum')->prefix('onboarding-progress')->group(function () {
+    Route::get('/', [UserOnboardingProgressController::class, 'index'])->middleware('can:users.view');
+    Route::post('/assign', [UserOnboardingProgressController::class, 'assign'])->middleware('can:users.manage');
+    Route::post('/bulk-assign', [UserOnboardingProgressController::class, 'bulkAssign'])->middleware('can:users.manage');
+    Route::get('/my-progress', [UserOnboardingProgressController::class, 'myProgress']);
+    Route::get('/statistics', [UserOnboardingProgressController::class, 'statistics'])->middleware('can:users.manage');
+    Route::get('/{progress}', [UserOnboardingProgressController::class, 'show']);
+    Route::post('/{progress}/start', [UserOnboardingProgressController::class, 'start']);
+    Route::post('/{progress}/complete-step', [UserOnboardingProgressController::class, 'completeStep']);
+    Route::post('/{progress}/uncomplete-step', [UserOnboardingProgressController::class, 'uncompleteStep']);
+    Route::put('/{progress}/notes', [UserOnboardingProgressController::class, 'updateNotes'])->middleware('can:users.manage');
+    Route::delete('/{progress}', [UserOnboardingProgressController::class, 'destroy'])->middleware('can:users.manage');
+});
+
 // Security: IP policies and locks (protect with auth in production)
 Route::prefix('security')->middleware((function () {
     // Always enforce the IP policy; add auth in production
@@ -423,4 +569,275 @@ Route::prefix('security')->middleware((function () {
     // IP Locks
     Route::get('/ip-locks', [SecurityIpController::class, 'indexLocks']);
     Route::post('/ip-locks/unlock', [SecurityIpController::class, 'unlock']);
+});
+
+// ------------------------------------------------------------
+// Simulados (development stubs for FE integration)
+// Note: returns raw objects/arrays (no { data: ... }) to match FE
+// ------------------------------------------------------------
+Route::prefix('simulados')->group(function () {
+    // In-memory simulados catalog (static for now)
+    $getCatalog = function () {
+        return [
+            [
+                'id' => 1,
+                'title' => 'Simulado de Segurança no Trabalho',
+                'description' => 'Avalie seus conhecimentos em normas de segurança.',
+                'duration' => 1800,
+                'minScore' => 70,
+                'maxAttempts' => 3,
+                'allowNavigation' => true,
+                'allowSaveProgress' => true,
+                'showFeedback' => true,
+                'type' => 'obrigatorio',
+                'questions' => [
+                    [
+                        'id' => 1,
+                        'type' => 'multiple_choice',
+                        'question' => 'Qual é a cor do capacete para visitantes?',
+                        'options' => [
+                            ['id' => 'a', 'text' => 'Azul'],
+                            ['id' => 'b', 'text' => 'Branco'],
+                            ['id' => 'c', 'text' => 'Vermelho'],
+                            ['id' => 'd', 'text' => 'Amarelo'],
+                        ],
+                        'correctAnswer' => 'b',
+                        'explanation' => 'Em muitas normas, capacete branco é usado por visitantes/supervisores.',
+                    ],
+                    [
+                        'id' => 2,
+                        'type' => 'true_false',
+                        'question' => 'É obrigatório o uso de EPI em áreas sinalizadas.',
+                        'options' => [
+                            ['id' => 'true', 'text' => 'Verdadeiro'],
+                            ['id' => 'false', 'text' => 'Falso'],
+                        ],
+                        'correctAnswer' => 'true',
+                        'explanation' => 'EPI é obrigatório conforme NR-06.',
+                    ],
+                    [
+                        'id' => 3,
+                        'type' => 'multiple_choice',
+                        'question' => 'Qual extintor usar em incêndio elétrico?',
+                        'options' => [
+                            ['id' => 'a', 'text' => 'Água'],
+                            ['id' => 'b', 'text' => 'Pó químico'],
+                            ['id' => 'c', 'text' => 'CO2'],
+                            ['id' => 'd', 'text' => 'Espuma'],
+                        ],
+                        'correctAnswer' => 'c',
+                        'explanation' => 'CO2 é indicado para equipamentos energizados.',
+                    ],
+                ],
+            ],
+        ];
+    };
+
+    Route::get('/', function () use ($getCatalog) {
+        return response()->json($getCatalog());
+    });
+
+    Route::get('/{simulado}', function ($simulado) use ($getCatalog) {
+        $simulado = (int)$simulado;
+        foreach ($getCatalog() as $s) {
+            if ($s['id'] === $simulado) {
+                return response()->json($s);
+            }
+        }
+        return response()->json(['message' => 'Simulado não encontrado'], 404);
+    });
+
+    // List attempts for a given simulado
+    Route::get('/{simulado}/attempts', function ($simulado) {
+        $simulado = (int)$simulado;
+        $indexKey = 'simulado_attempts_index_' . $simulado;
+        $attemptIds = \Illuminate\Support\Facades\Cache::get($indexKey, []);
+        $attempts = [];
+        foreach ($attemptIds as $id) {
+            $a = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $id);
+            if ($a) { $attempts[] = $a; }
+        }
+        return response()->json($attempts);
+    });
+
+    // Start or resume an attempt
+    Route::post('/{simulado}/attempts', function ($simulado, \Illuminate\Http\Request $request) use ($getCatalog) {
+        $simulado = (int)$simulado;
+        $resume = (bool)$request->input('resume', false);
+
+        // Validate simulado exists
+        $found = null;
+        foreach ($getCatalog() as $s) { if ($s['id'] === $simulado) { $found = $s; break; } }
+        if (!$found) { return response()->json(['message' => 'Simulado não encontrado'], 404); }
+
+        // For demo: single active attempt per simulado; resume the most recent
+        $indexKey = 'simulado_attempts_index_' . $simulado;
+        $attemptIds = \Illuminate\Support\Facades\Cache::get($indexKey, []);
+        if ($resume && !empty($attemptIds)) {
+            $latestId = end($attemptIds);
+            $existing = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $latestId);
+            if ($existing && empty($existing['submittedAt'])) {
+                return response()->json([
+                    'attemptId' => $existing['id'],
+                    'id' => $existing['id'],
+                    'simuladoId' => $simulado,
+                    'currentQuestion' => $existing['currentQuestion'] ?? 0,
+                    'answers' => $existing['answers'] ?? [],
+                    'timeRemaining' => $existing['timeRemaining'] ?? ($found['duration'] ?? 0),
+                ]);
+            }
+        }
+
+        $id = 'att_' . uniqid();
+        $attempt = [
+            'id' => $id,
+            'simuladoId' => (int)$simulado,
+            'createdAt' => now()->toISOString(),
+            'currentQuestion' => 0,
+            'answers' => [],
+            'timeRemaining' => $found['duration'] ?? 0,
+        ];
+        \Illuminate\Support\Facades\Cache::put('simulado_attempt_' . $id, $attempt, 86400);
+        $attemptIds[] = $id;
+        \Illuminate\Support\Facades\Cache::put($indexKey, $attemptIds, 86400);
+
+        return response()->json([
+            'attemptId' => $id,
+            'id' => $id,
+            'simuladoId' => $simulado,
+            'currentQuestion' => 0,
+            'answers' => [],
+            'timeRemaining' => $found['duration'] ?? 0,
+        ], 201);
+    });
+});
+
+// Attempts CRUD outside group for direct access by attemptId
+Route::get('/attempts/{attempt}', function ($attempt) {
+    $a = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $attempt);
+    if (!$a) { return response()->json(['message' => 'Tentativa não encontrada'], 404); }
+    return response()->json($a);
+});
+
+Route::patch('/attempts/{attempt}', function ($attempt, \Illuminate\Http\Request $request) {
+    $key = 'simulado_attempt_' . $attempt;
+    $a = \Illuminate\Support\Facades\Cache::get($key);
+    if (!$a) { return response()->json(['message' => 'Tentativa não encontrada'], 404); }
+    $payload = $request->only(['currentQuestion','answers','timeRemaining']);
+    $a = array_merge($a, $payload);
+    \Illuminate\Support\Facades\Cache::put($key, $a, 86400);
+    return response()->json($a);
+});
+
+Route::post('/attempts/{attempt}/submit', function ($attempt, \Illuminate\Http\Request $request) use (&$getCatalog) {
+    $key = 'simulado_attempt_' . $attempt;
+    $a = \Illuminate\Support\Facades\Cache::get($key);
+    if (!$a) { return response()->json(['message' => 'Tentativa não encontrada'], 404); }
+
+    // Merge provided answers if any
+    $answers = $request->input('answers');
+    if (is_array($answers)) {
+        $a['answers'] = array_merge($a['answers'] ?? [], $answers);
+    }
+
+    // Load simulado
+    $catalog = $getCatalog();
+    $simulado = null;
+    foreach ($catalog as $s) { if ($s['id'] === (int)($a['simuladoId'] ?? 0)) { $simulado = $s; break; } }
+    if (!$simulado) { return response()->json(['message' => 'Simulado não encontrado'], 404); }
+
+    $correct = 0; $details = [];
+    $total = count($simulado['questions'] ?? []);
+    foreach ($simulado['questions'] as $q) {
+        $userAnswer = $a['answers'][$q['id']] ?? null;
+        $isCorrect = $userAnswer !== null && $userAnswer === $q['correctAnswer'];
+        if ($isCorrect) $correct++;
+        $details[] = [
+            'questionId' => $q['id'],
+            'question' => $q['question'],
+            'userAnswer' => $userAnswer,
+            'correctAnswer' => $q['correctAnswer'],
+            'isCorrect' => $isCorrect,
+            'explanation' => !empty($simulado['showFeedback']) ? ($q['explanation'] ?? null) : null,
+            'options' => $q['options'],
+        ];
+    }
+    $score = $total > 0 ? round(($correct / $total) * 100) : 0;
+    $passed = $score >= (int)($simulado['minScore'] ?? 0);
+
+    $duration = ($simulado['duration'] ?? 0) - (int)($a['timeRemaining'] ?? 0);
+    if ($duration < 0) { $duration = 0; }
+
+    $result = [
+        'attemptId' => $a['id'],
+        'score' => $score,
+        'passed' => $passed,
+        'duration' => $duration,
+        'totalQuestions' => $total,
+        'correctAnswers' => $correct,
+        'wrongAnswers' => max(0, $total - $correct),
+        'details' => $details,
+        'certificateEligible' => $passed && (($simulado['type'] ?? '') === 'obrigatorio'),
+    ];
+
+    $a['submittedAt'] = now()->toISOString();
+    $a['result'] = $result;
+    \Illuminate\Support\Facades\Cache::put($key, $a, 86400);
+
+    // Optionally issue a certificate code
+    if ($result['certificateEligible']) {
+        $certId = 'cert_' . uniqid();
+        $result['certificateId'] = $certId;
+        \Illuminate\Support\Facades\Cache::put('simulado_certificate_' . $certId, [
+            'id' => $certId,
+            'attemptId' => $a['id'],
+            'simuladoId' => $a['simuladoId'],
+            'issuedAt' => now()->toISOString(),
+            'score' => $score,
+        ], 86400);
+        $a['result'] = $result;
+        \Illuminate\Support\Facades\Cache::put($key, $a, 86400);
+    }
+
+    return response()->json($result);
+});
+
+Route::get('/attempts/{attempt}/result', function ($attempt) {
+    $a = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $attempt);
+    if (!$a || empty($a['result'])) {
+        return response()->json(['message' => 'Resultado não disponível'], 404);
+    }
+    return response()->json($a['result']);
+});
+
+// Certificates
+Route::post('/certificates', function (\Illuminate\Http\Request $request) {
+    $simuladoId = (int)$request->input('simuladoId');
+    $attemptId = (string)$request->input('attemptId');
+    $a = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $attemptId);
+    if (!$a || (int)($a['simuladoId'] ?? 0) !== $simuladoId) {
+        return response()->json(['message' => 'Tentativa inválida'], 422);
+    }
+    $result = $a['result'] ?? null;
+    if (!$result || empty($result['passed'])) {
+        return response()->json(['message' => 'Certificado não elegível'], 422);
+    }
+    $certId = $result['certificateId'] ?? ('cert_' . uniqid());
+    $cert = [
+        'id' => $certId,
+        'attemptId' => $attemptId,
+        'simuladoId' => $simuladoId,
+        'issuedAt' => now()->toISOString(),
+        'score' => $result['score'] ?? 0,
+    ];
+    \Illuminate\Support\Facades\Cache::put('simulado_certificate_' . $certId, $cert, 86400);
+    return response()->json($cert, 201);
+});
+
+Route::get('/certificates/verify', function (\Illuminate\Http\Request $request) {
+    $code = (string)$request->query('code', '');
+    if ($code === '') { return response()->json(['message' => 'Código requerido'], 422); }
+    $cert = \Illuminate\Support\Facades\Cache::get('simulado_certificate_' . $code);
+    if (!$cert) { return response()->json(['valid' => false], 404); }
+    return response()->json(['valid' => true, 'certificate' => $cert]);
 });

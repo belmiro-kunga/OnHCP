@@ -55,6 +55,7 @@ const routes = [
     component: AdminDashboard,
     meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
   },
+
   {
     path: '/admin/dashboard/reports',
     redirect: '/admin/dashboard/users'
@@ -98,6 +99,32 @@ const routes = [
     path: '/admin/dashboard/settings/email',
     component: AdminDashboard,
     meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+  },
+  // Rotas do módulo de simulados
+  {
+    path: '/simulados',
+    component: () => import('./components/modules/SimuladoList.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/simulados/:id/rules',
+    component: () => import('./components/modules/SimuladoRules.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/simulados/:id/exam',
+    component: () => import('./components/modules/SimuladoExam.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/simulados/:id/result/:attemptId',
+    component: () => import('./components/modules/SimuladoResult.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/simulados/history',
+    component: () => import('./components/modules/SimuladoHistory.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

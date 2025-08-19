@@ -13,14 +13,25 @@ class Department extends Model
 
     protected $fillable = [
         'name',
-        'description',
         'code',
+        'description',
+        'parent_id',
         'manager_id',
-        'is_active',
+        'cost_center',
+        'location',
+        'email',
+        'phone',
+        'metadata',
+        'external_id',
+        'ad_group',
+        'active',
+        'sync_at',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'active' => 'boolean',
+        'metadata' => 'array',
+        'sync_at' => 'datetime',
     ];
 
     /**
@@ -40,6 +51,38 @@ class Department extends Model
     }
 
     /**
+     * Get the parent department.
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'parent_id');
+    }
+
+    /**
+     * Get the child departments.
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Department::class, 'parent_id');
+    }
+
+    /**
+     * Get the job positions in this department.
+     */
+    public function jobPositions(): HasMany
+    {
+        return $this->hasMany(JobPosition::class);
+    }
+
+    /**
+     * Get the organizational structures for this department.
+     */
+    public function organizationalStructures(): HasMany
+    {
+        return $this->hasMany(OrganizationalStructure::class);
+    }
+
+    /**
      * Scope a query to only include active departments.
      */
     public function scopeActive($query)
@@ -53,5 +96,29 @@ class Department extends Model
     public function getUsersCountAttribute()
     {
         return $this->users()->count();
+    }
+
+    /**
+     * Get all descendants of this department.
+     */
+    public function descendants()
+    {
+        return $this->children()->with('descendants');
+    }
+
+    /**
+     * Get all ancestors of this department.
+     */
+    public function ancestors()
+    {
+        $ancestors = collect();
+        $parent = $this->parent;
+        
+        while ($parent) {
+            $ancestors->push($parent);
+            $parent = $parent->parent;
+        }
+        
+        return $ancestors;
     }
 }

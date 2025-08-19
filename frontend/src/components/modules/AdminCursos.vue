@@ -232,10 +232,10 @@ export default {
       filterStatus: '',
       showCreateModal: false,
       stats: {
-        totalCursos: 24,
-        cursosPublicados: 18,
-        estudantesInscritos: 342,
-        avaliacaoMedia: 4.2
+        totalCursos: 0,
+        cursosPublicados: 0,
+        estudantesInscritos: 0,
+        avaliacaoMedia: 0
       },
       newCurso: {
         titulo: '',
@@ -244,68 +244,7 @@ export default {
         instrutor: '',
         duracao: ''
       },
-      cursos: [
-        {
-          id: 1,
-          titulo: 'Fundamentos de Cibersegurança',
-          categoria: 'Segurança',
-          instrutor: 'Dr. João Silva',
-          duracao: '4h 30min',
-          inscritos: 45,
-          conclusoes: 38,
-          avaliacao: 4,
-          totalAvaliacoes: 35,
-          status: 'publicado'
-        },
-        {
-          id: 2,
-          titulo: 'GDPR e Proteção de Dados',
-          categoria: 'Compliance',
-          instrutor: 'Ana Costa',
-          duracao: '3h 15min',
-          inscritos: 32,
-          conclusoes: 28,
-          avaliacao: 5,
-          totalAvaliacoes: 28,
-          status: 'publicado'
-        },
-        {
-          id: 3,
-          titulo: 'Desenvolvimento Web Moderno',
-          categoria: 'Técnico',
-          instrutor: 'Carlos Mendes',
-          duracao: '8h 45min',
-          inscritos: 28,
-          conclusoes: 15,
-          avaliacao: 4,
-          totalAvaliacoes: 18,
-          status: 'publicado'
-        },
-        {
-          id: 4,
-          titulo: 'Liderança e Comunicação',
-          categoria: 'Soft Skills',
-          instrutor: 'Maria Santos',
-          duracao: '2h 20min',
-          inscritos: 52,
-          conclusoes: 47,
-          avaliacao: 5,
-          totalAvaliacoes: 45,
-          status: 'publicado'
-        },
-        {
-          id: 5,
-          titulo: 'Análise de Riscos',
-          categoria: 'Segurança',
-          instrutor: 'Pedro Oliveira',
-          duracao: '5h 10min',
-          inscritos: 0,
-          conclusoes: 0,
-          avaliacao: 0,
-          totalAvaliacoes: 0,
-          status: 'rascunho'
-        }
-      ]
+      cursos: []
     }
   },
   computed: {

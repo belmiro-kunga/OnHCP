@@ -126,11 +126,7 @@ const routes = [
     component: () => import('./components/modules/SimuladoResult.vue'),
     meta: { requiresAuth: true }
   },
-  {
-    path: '/simulados/history',
-    component: () => import('./components/modules/SimuladoHistory.vue'),
-    meta: { requiresAuth: true }
-  }
+  {    path: '/simulados/history',    component: () => import('./components/modules/SimuladoHistory.vue'),    meta: { requiresAuth: true }  },  // Rota do dashboard de analytics  {    path: '/admin/dashboard/analytics',    component: () => import('./components/modules/AnalyticsDashboard.vue'),    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }  }
 ]
 
 const router = createRouter({

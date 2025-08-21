@@ -28,5 +28,11 @@ class DatabaseSeeder extends Seeder
         
         // Create authentication and access data (role mappings, permissions, delegations, licenses)
         $this->call(AuthAccessSeeder::class);
+        
+        // Create system metrics sample data
+        $this->call(SystemMetricsSeeder::class);
+        
+        // Create simulados with questions
+        $this->call(SimuladoSeeder::class);
     }
 }

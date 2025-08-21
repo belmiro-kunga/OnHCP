@@ -4,11 +4,34 @@ namespace App\Services;
 use App\Models\SimuladoAttempt;
 use App\Models\User;
 use App\Models\Simulado;
-use App\Services\NotificationService;
+use App\Contracts\NotificationServiceInterface;
+use App\Services\Scoring\ScoringStrategyFactory;
+use App\Contracts\ScoringStrategyInterface;
 use Illuminate\Support\Facades\DB;
 
 class SimuladoAttemptService
 {
+    /**
+     * @var ScoringStrategyInterface
+     */
+    private ScoringStrategyInterface $scoringStrategy;
+
+    public function __construct()
+    {
+        // Default to standard scoring strategy
+        $this->scoringStrategy = ScoringStrategyFactory::create('standard');
+    }
+
+    /**
+     * Set the scoring strategy
+     *
+     * @param string $strategyName
+     * @return void
+     */
+    public function setScoringStrategy(string $strategyName): void
+    {
+        $this->scoringStrategy = ScoringStrategyFactory::create($strategyName);
+    }
     /**
      * Inicia ou retoma uma tentativa para um simulado e usuário.
      */
@@ -67,16 +90,26 @@ class SimuladoAttemptService
         $questions = $sim['questions'] ?? [];
         $total = count($questions);
 
-        // Calcular score usando método do model
-        $score = $a->calculateScore($questions, $a->answers ?? []);
-        $passed = $score >= (int)($sim['minScore'] ?? 0);
+        // Preparar questões para a estratégia de pontuação
+        $questionsForScoring = [];
+        foreach ($questions as $q) {
+            $questionsForScoring[] = [
+                'id' => $q['id'],
+                'correct_answer' => $q['correctAnswer'] ?? null,
+                'weight' => $q['weight'] ?? 1, // Para estratégias ponderadas
+            ];
+        }
+
+        // Calcular score usando estratégia de pontuação
+        $scoreDetails = $this->scoringStrategy->calculateScore($a->answers ?? [], $questionsForScoring);
+        $score = $scoreDetails['score'];
+        $passed = $this->scoringStrategy->hasPassed($scoreDetails, (float)($sim['minScore'] ?? 0));
 
         // Montar details (mantendo formato atual)
-        $correct = 0; $details = [];
+        $details = [];
         foreach ($questions as $q) {
             $userAnswer = $a->answers[$q['id']] ?? null;
             $isCorrect = $userAnswer !== null && $userAnswer === ($q['correctAnswer'] ?? null);
-            if ($isCorrect) { $correct++; }
             $details[] = [
                 'questionId' => $q['id'],
                 'question' => $q['question'] ?? '',
@@ -96,11 +129,12 @@ class SimuladoAttemptService
             'score' => $score,
             'passed' => $passed,
             'duration' => $duration,
-            'totalQuestions' => $total,
-            'correctAnswers' => $correct,
-            'wrongAnswers' => max(0, $total - $correct),
+            'totalQuestions' => $scoreDetails['total_questions'],
+            'correctAnswers' => $scoreDetails['correct_answers'],
+            'wrongAnswers' => $scoreDetails['incorrect_answers'],
             'details' => $details,
             'certificateEligible' => $passed && (($sim['type'] ?? '') === 'obrigatorio'),
+            'scoringStrategy' => $this->scoringStrategy->getName(),
         ];
 
         // Preservar certificateId anterior, se houver, mantendo compatibilidade
@@ -164,7 +198,7 @@ class SimuladoAttemptService
             return;
         }
 
-        $notificationService = app(NotificationService::class);
+        $notificationService = app(NotificationServiceInterface::class);
         
         // Notificação de simulado concluído
         $notificationService->simuladoCompleted($user, $simulado, $attempt);

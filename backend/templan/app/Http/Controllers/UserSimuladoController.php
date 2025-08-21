@@ -1,35 +1,44 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Contracts\CacheServiceInterface;
 use App\Models\Simulado;
 use App\Models\SimuladoAssignment;
 use App\Models\SimuladoAttempt;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class UserSimuladoController extends Controller
 {
+    public function __construct(
+        private CacheServiceInterface $cacheService
+    ) {}
     public function mySimulados(Request $request)
     {
         // In a real app, determine the current user and their courses/classes
         $userId = optional($request->user())->id ?? 1; // dev fallback
 
-        // Collect assignments targeted to this user directly
-        $assignments = SimuladoAssignment::query()
-            ->where(function($q) use ($userId) {
-                $q->where('target_type', 'user')->where('target_id', $userId);
-            })
-            ->get();
+        // Cache key for user simulados
+        $cacheKey = $this->cacheService->generateUserCacheKey($userId);
+        
+        $result = Cache::remember($cacheKey, 300, function () use ($userId) { // Cache for 5 minutes
+            // Collect assignments targeted to this user directly
+            $assignments = SimuladoAssignment::query()
+                ->where(function($q) use ($userId) {
+                    $q->where('target_type', 'user')->where('target_id', $userId);
+                })
+                ->get();
 
-        // NOTE: For course/class, you would resolve memberships to user IDs and include them
+            // NOTE: For course/class, you would resolve memberships to user IDs and include them
 
-        $simuladoIds = $assignments->pluck('simulado_id')->unique()->values();
-        $simulados = Simulado::whereIn('id', $simuladoIds)->get()->keyBy('id');
+            $simuladoIds = $assignments->pluck('simulado_id')->unique()->values();
+            $simulados = Simulado::whereIn('id', $simuladoIds)->get()->keyBy('id');
 
-        // Attempts per simulado for this user
-        $attempts = SimuladoAttempt::whereIn('simulado_id', $simuladoIds)
-            ->where('user_id', $userId)
-            ->get()
-            ->groupBy('simulado_id');
+            // Attempts per simulado for this user
+            $attempts = SimuladoAttempt::whereIn('simulado_id', $simuladoIds)
+                ->where('user_id', $userId)
+                ->get()
+                ->groupBy('simulado_id');
 
         $out = [];
         foreach ($assignments as $as) {
@@ -60,6 +69,9 @@ class UserSimuladoController extends Controller
             ];
         }
 
-        return response()->json(array_values($out));
+            return array_values($out);
+        });
+        
+        return response()->json($result);
     }
 }

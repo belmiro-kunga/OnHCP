@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
-use App\Services\NotificationService;
+use App\Contracts\NotificationServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -11,9 +11,9 @@ use Illuminate\Validation\Rule;
 
 class NotificationController extends Controller
 {
-    private NotificationService $notificationService;
+    private NotificationServiceInterface $notificationService;
 
-    public function __construct(NotificationService $notificationService)
+    public function __construct(NotificationServiceInterface $notificationService)
     {
         $this->notificationService = $notificationService;
     }

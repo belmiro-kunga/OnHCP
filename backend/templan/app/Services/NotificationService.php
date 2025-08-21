@@ -7,12 +7,81 @@ use App\Models\User;
 use App\Models\Simulado;
 use App\Models\SimuladoAttempt;
 use App\Events\NotificationSent;
+use App\Contracts\NotificationServiceInterface;
+use App\Contracts\NotificationChannelInterface;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 
-class NotificationService
+class NotificationService implements NotificationServiceInterface
 {
+    /**
+     * @var array<string, NotificationChannelInterface>
+     */
+    private array $channels = [];
+
+    public function __construct()
+    {
+        // Initialize with default channels
+        $this->addChannel(app(\App\Services\Notifications\EmailNotificationChannel::class));
+        $this->addChannel(app(\App\Services\Notifications\DatabaseNotificationChannel::class));
+    }
+    /**
+     * Send a notification using available channels
+     */
+    public function send(
+        array $recipient,
+        string $type,
+        string $subject,
+        string $message,
+        array $data = [],
+        array $channels = []
+    ): array {
+        $results = [];
+        $channelsToUse = empty($channels) ? $this->channels : array_intersect_key($this->channels, array_flip($channels));
+
+        foreach ($channelsToUse as $channel) {
+            if ($channel->isAvailable() && in_array($type, $channel->getSupportedTypes())) {
+                $success = $channel->send($recipient, $subject, $message, $data);
+                $results[$channel->getName()] = $success;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Add a notification channel
+     */
+    public function addChannel(NotificationChannelInterface $channel): void
+    {
+        $this->channels[$channel->getName()] = $channel;
+    }
+
+    /**
+     * Remove a notification channel
+     */
+    public function removeChannel(string $channelName): void
+    {
+        unset($this->channels[$channelName]);
+    }
+
+    /**
+     * Get available channels
+     */
+    public function getAvailableChannels(): array
+    {
+        return array_keys($this->channels);
+    }
+
+    /**
+     * Check if a channel is available
+     */
+    public function hasChannel(string $channelName): bool
+    {
+        return isset($this->channels[$channelName]);
+    }
+
     /**
      * Envia um email simples para a lista de administradores definida em NOTIFY_ADMIN_EMAILS
      * NOTIFY_ADMIN_EMAILS=admin1@example.com,admin2@example.com

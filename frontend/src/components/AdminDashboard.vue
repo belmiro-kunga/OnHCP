@@ -46,6 +46,7 @@ import AdminAudit from './modules/AdminAudit.vue'
 import AdminSecurity from './modules/AdminSecurity.vue'
 import AdminRoleMappings from './modules/AdminRoleMappings.vue'
 import AdminSettings from './modules/AdminSettings.vue'
+import AnalyticsDashboard from './modules/AnalyticsDashboard.vue'
 
 export default {
   name: 'AdminDashboard',
@@ -64,7 +65,8 @@ export default {
     AdminAudit,
     AdminSecurity,
     AdminRoleMappings,
-    AdminSettings
+    AdminSettings,
+    AnalyticsDashboard
   },
   setup() {
     const { activeTab, selectMenuItem } = useNavigation()
@@ -87,7 +89,8 @@ export default {
       security: 'AdminSecurity',
       'role-mappings': 'AdminRoleMappings',
       settings: 'AdminSettings',
-      'simulado-categories': 'AdminSimuladoCategories'
+      'simulado-categories': 'AdminSimuladoCategories',
+      analytics: 'AnalyticsDashboard'
     }
 
     // Mapeamento de permissões por aba
@@ -103,7 +106,8 @@ export default {
       security: ['security.view'],
       'role-mappings': ['users.manage'],
       settings: ['admin.dashboard.view'],
-      'simulado-categories': ['admin.dashboard.view']
+      'simulado-categories': ['admin.dashboard.view'],
+      analytics: ['admin.dashboard.view']
     }
 
     const currentComponent = computed(() => {

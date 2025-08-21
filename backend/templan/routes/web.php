@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 
 // Redirecionar para o frontend Vue.js
 Route::get('/', function () {
@@ -14,3 +15,6 @@ Route::prefix('api')->group(function () {
         return response()->json(['status' => 'OK', 'message' => 'OnHCP API is running']);
     });
 });
+
+// Broadcasting routes
+Broadcast::routes();

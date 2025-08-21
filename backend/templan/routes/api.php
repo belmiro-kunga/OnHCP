@@ -602,10 +602,9 @@ Route::prefix('security')->middleware((function () {
 });
 
 // ------------------------------------------------------------
-// Simulados (development stubs for FE integration)
-// Note: returns raw objects/arrays (no { data: ... }) to match FE
+// Simulados (protected routes with authentication and rate limiting)
 // ------------------------------------------------------------
-Route::prefix('simulados')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('simulados')->group(function () {
     // In-memory simulados catalog (static for now)
     $getCatalog = function () {
         return [
@@ -684,19 +683,23 @@ Route::prefix('simulados')->group(function () {
     Route::post('/{simulado}/attempts', [SimuladoAttemptController::class, 'startOrResume']);
 });
 
-// Attempts CRUD outside group for direct access by attemptId
-Route::get('/attempts/{attempt}', [SimuladoAttemptController::class, 'show']);
+// Attempts CRUD outside group for direct access by attemptId (protected)
+Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
+    Route::get('/attempts/{attempt}', [SimuladoAttemptController::class, 'show']);
+    Route::patch('/attempts/{attempt}', [SimuladoAttemptController::class, 'updatePartial']);
+    Route::post('/attempts/{attempt}/submit', [SimuladoAttemptController::class, 'submit']);
+    Route::get('/attempts/{attempt}/result', [SimuladoAttemptController::class, 'getResult']);
+});
 
-Route::patch('/attempts/{attempt}', [SimuladoAttemptController::class, 'updatePartial']);
+// Certificates (protected)
+Route::middleware(['auth:sanctum', 'throttle:30,1'])->group(function () {
+    Route::post('/certificates', [SimuladoCertificateController::class, 'issue']);
+});
 
-Route::post('/attempts/{attempt}/submit', [SimuladoAttemptController::class, 'submit']);
-
-Route::get('/attempts/{attempt}/result', [SimuladoAttemptController::class, 'result']);
-
-// Certificates
-Route::post('/certificates', [SimuladoCertificateController::class, 'issue']);
-
-Route::get('/certificates/verify', [SimuladoCertificateController::class, 'verify']);
+// Certificate verification (public but rate limited)
+Route::middleware('throttle:10,1')->group(function () {
+    Route::get('/certificates/verify', [SimuladoCertificateController::class, 'verify']);
+});
 
 // ------------------------------------------------------------
 // Notifications API

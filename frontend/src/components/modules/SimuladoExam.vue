@@ -62,17 +62,64 @@
         <!-- Navegação de Questões -->
         <div class="lg:col-span-1">
           <div class="bg-white rounded-lg shadow-sm border p-4 sticky top-24">
-            <h3 class="font-semibold text-gray-900 mb-3">Navegação</h3>
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="font-semibold text-gray-900">Navegação</h3>
+              <span class="text-xs text-gray-500">
+                {{ currentPageRange.start }}-{{ currentPageRange.end }} de {{ simulado.questions.length }}
+              </span>
+            </div>
+            
+            <!-- Controles de Paginação -->
+            <div v-if="totalPages > 1" class="flex justify-between items-center mb-3">
+              <button
+                @click="previousPage"
+                :disabled="currentPage === 1"
+                class="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+              </button>
+              
+              <div class="flex items-center gap-1">
+                <template v-for="page in Math.min(5, totalPages)" :key="page">
+                  <button
+                    v-if="page <= 3 || page > totalPages - 2 || Math.abs(page - currentPage) <= 1"
+                    @click="goToPage(page)"
+                    :class="{
+                      'bg-blue-600 text-white': page === currentPage,
+                      'text-gray-700 hover:bg-gray-100': page !== currentPage
+                    }"
+                    class="w-6 h-6 text-xs rounded transition-colors"
+                  >
+                    {{ page }}
+                  </button>
+                  <span v-else-if="page === 4 && totalPages > 6" class="text-gray-400 text-xs">...</span>
+                </template>
+              </div>
+              
+              <button
+                @click="nextPage"
+                :disabled="currentPage === totalPages"
+                class="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Grid de Questões da Página Atual -->
             <div class="grid grid-cols-5 gap-2">
               <button
-                v-for="(question, index) in simulado.questions"
-                :key="index"
-                @click="goToQuestion(index)"
-                :disabled="!canNavigateToQuestion(index)"
-                :class="getQuestionButtonClass(index)"
+                v-for="question in paginatedQuestions"
+                :key="question.originalIndex"
+                @click="goToQuestion(question.originalIndex)"
+                :disabled="!canNavigateToQuestion(question.originalIndex)"
+                :class="getQuestionButtonClass(question.originalIndex)"
                 class="w-8 h-8 text-sm font-medium rounded transition-colors"
               >
-                {{ index + 1 }}
+                {{ question.originalIndex + 1 }}
               </button>
             </div>
             
@@ -389,6 +436,10 @@ export default {
     const submitting = ref(false)
     const saving = ref(false)
     const startTime = ref(null)
+    
+    // Paginação
+    const questionsPerPage = ref(20)
+    const currentPage = ref(1)
 
     // Computed
     const currentQuestion = computed(() => {
@@ -421,6 +472,28 @@ export default {
 
     const timeWarning = computed(() => {
       return timeRemaining.value <= 300 // 5 minutos
+    })
+    
+    // Computed para paginação
+    const totalPages = computed(() => {
+      if (!simulado.value) return 0
+      return Math.ceil(simulado.value.questions.length / questionsPerPage.value)
+    })
+    
+    const paginatedQuestions = computed(() => {
+      if (!simulado.value) return []
+      const start = (currentPage.value - 1) * questionsPerPage.value
+      const end = start + questionsPerPage.value
+      return simulado.value.questions.slice(start, end).map((question, index) => ({
+        ...question,
+        originalIndex: start + index
+      }))
+    })
+    
+    const currentPageRange = computed(() => {
+      const start = (currentPage.value - 1) * questionsPerPage.value + 1
+      const end = Math.min(currentPage.value * questionsPerPage.value, simulado.value?.questions.length || 0)
+      return { start, end }
     })
 
     // Métodos
@@ -508,18 +581,52 @@ export default {
     const goToQuestion = (index) => {
       if (canNavigateToQuestion(index)) {
         currentQuestionIndex.value = index
+        // Atualizar página se necessário
+        const targetPage = Math.floor(index / questionsPerPage.value) + 1
+        if (targetPage !== currentPage.value) {
+          currentPage.value = targetPage
+        }
       }
     }
 
     const nextQuestion = () => {
       if (!isLastQuestion.value) {
         currentQuestionIndex.value++
+        // Verificar se precisa mudar de página
+        const targetPage = Math.floor(currentQuestionIndex.value / questionsPerPage.value) + 1
+        if (targetPage !== currentPage.value) {
+          currentPage.value = targetPage
+        }
       }
     }
 
     const previousQuestion = () => {
       if (canGoToPrevious.value) {
         currentQuestionIndex.value--
+        // Verificar se precisa mudar de página
+        const targetPage = Math.floor(currentQuestionIndex.value / questionsPerPage.value) + 1
+        if (targetPage !== currentPage.value) {
+          currentPage.value = targetPage
+        }
+      }
+    }
+    
+    // Métodos de paginação
+    const goToPage = (page) => {
+      if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page
+      }
+    }
+    
+    const nextPage = () => {
+      if (currentPage.value < totalPages.value) {
+        currentPage.value++
+      }
+    }
+    
+    const previousPage = () => {
+      if (currentPage.value > 1) {
+        currentPage.value--
       }
     }
 
@@ -643,6 +750,8 @@ export default {
       showExitModal,
       submitting,
       saving,
+      currentPage,
+      questionsPerPage,
       
       // Computed
       currentQuestion,
@@ -652,6 +761,9 @@ export default {
       answeredQuestions,
       unansweredQuestions,
       timeWarning,
+      totalPages,
+      paginatedQuestions,
+      currentPageRange,
       
       // Métodos
       formatTime,
@@ -661,6 +773,9 @@ export default {
       goToQuestion,
       nextQuestion,
       previousQuestion,
+      goToPage,
+      nextPage,
+      previousPage,
       saveProgress,
       finishExam,
       exitExam

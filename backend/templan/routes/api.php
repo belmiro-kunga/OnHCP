@@ -28,6 +28,11 @@ use App\Http\Controllers\AdminSimuladoController;
 use App\Http\Controllers\AdminSimuladoAssignmentController;
 use App\Http\Controllers\UserSimuladoController;
 use App\Http\Controllers\SimuladoCategoryController;
+use App\Http\Controllers\SimuladoAttemptController;
+use App\Http\Controllers\SimuladoCertificateController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Api\NotificationPreferencesController;
+use App\Http\Controllers\Api\ReportsController;
 
 Route::get('/health', function () {
     return response()->json([
@@ -90,8 +95,31 @@ Route::middleware('auth:sanctum')->prefix('directory')->group(function () {
     Route::get('/groups', [DirectoryController::class, 'groups'])->middleware('can:users.manage');
 });
 
-// Reports
-Route::prefix('reports')->group(function () {
+// Reports - Dashboard de Relatórios
+Route::middleware('auth:sanctum')->prefix('reports')->group(function () {
+    // Dashboard principal
+    Route::get('/dashboard', [ReportsController::class, 'dashboard']);
+    Route::get('/overview', [ReportsController::class, 'overview']);
+    
+    // Métricas e tendências
+    Route::get('/trends', [ReportsController::class, 'trends']);
+    Route::get('/performance', [ReportsController::class, 'performance']);
+    Route::get('/system', [ReportsController::class, 'system']);
+    
+    // Relatórios específicos
+    Route::get('/simulados/categories', [ReportsController::class, 'simuladosByCategory']);
+    Route::get('/users/top-performers', [ReportsController::class, 'topPerformers']);
+    Route::get('/scores/distribution', [ReportsController::class, 'scoreDistribution']);
+    
+    // Estatísticas pessoais (disponível para todos os usuários)
+    Route::get('/my-stats', [ReportsController::class, 'myStats']);
+    
+    // Administração
+    Route::post('/collect-metrics', [ReportsController::class, 'collectMetrics'])->middleware('admin');
+    Route::post('/clear-cache', [ReportsController::class, 'clearCache'])->middleware('admin');
+    Route::get('/export', [ReportsController::class, 'export'])->middleware('admin');
+    
+    // Rotas antigas (manter compatibilidade temporária)
     Route::get('/metrics', [ReportController::class, 'metrics']);
     Route::get('/access', [ReportController::class, 'access']);
     Route::get('/permissions', [ReportController::class, 'permissions']);
@@ -650,196 +678,43 @@ Route::prefix('simulados')->group(function () {
     });
 
     // List attempts for a given simulado
-    Route::get('/{simulado}/attempts', function ($simulado) {
-        $simulado = (int)$simulado;
-        $indexKey = 'simulado_attempts_index_' . $simulado;
-        $attemptIds = \Illuminate\Support\Facades\Cache::get($indexKey, []);
-        $attempts = [];
-        foreach ($attemptIds as $id) {
-            $a = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $id);
-            if ($a) { $attempts[] = $a; }
-        }
-        return response()->json($attempts);
-    });
+    Route::get('/{simulado}/attempts', [SimuladoAttemptController::class, 'listBySimulado']);
 
     // Start or resume an attempt
-    Route::post('/{simulado}/attempts', function ($simulado, \Illuminate\Http\Request $request) use ($getCatalog) {
-        $simulado = (int)$simulado;
-        $resume = (bool)$request->input('resume', false);
-
-        // Validate simulado exists
-        $found = null;
-        foreach ($getCatalog() as $s) { if ($s['id'] === $simulado) { $found = $s; break; } }
-        if (!$found) { return response()->json(['message' => 'Simulado não encontrado'], 404); }
-
-        // For demo: single active attempt per simulado; resume the most recent
-        $indexKey = 'simulado_attempts_index_' . $simulado;
-        $attemptIds = \Illuminate\Support\Facades\Cache::get($indexKey, []);
-        if ($resume && !empty($attemptIds)) {
-            $latestId = end($attemptIds);
-            $existing = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $latestId);
-            if ($existing && empty($existing['submittedAt'])) {
-                return response()->json([
-                    'attemptId' => $existing['id'],
-                    'id' => $existing['id'],
-                    'simuladoId' => $simulado,
-                    'currentQuestion' => $existing['currentQuestion'] ?? 0,
-                    'answers' => $existing['answers'] ?? [],
-                    'timeRemaining' => $existing['timeRemaining'] ?? ($found['duration'] ?? 0),
-                ]);
-            }
-        }
-
-        $id = 'att_' . uniqid();
-        $attempt = [
-            'id' => $id,
-            'simuladoId' => (int)$simulado,
-            'createdAt' => now()->toISOString(),
-            'currentQuestion' => 0,
-            'answers' => [],
-            'timeRemaining' => $found['duration'] ?? 0,
-        ];
-        \Illuminate\Support\Facades\Cache::put('simulado_attempt_' . $id, $attempt, 86400);
-        $attemptIds[] = $id;
-        \Illuminate\Support\Facades\Cache::put($indexKey, $attemptIds, 86400);
-
-        return response()->json([
-            'attemptId' => $id,
-            'id' => $id,
-            'simuladoId' => $simulado,
-            'currentQuestion' => 0,
-            'answers' => [],
-            'timeRemaining' => $found['duration'] ?? 0,
-        ], 201);
-    });
+    Route::post('/{simulado}/attempts', [SimuladoAttemptController::class, 'startOrResume']);
 });
 
 // Attempts CRUD outside group for direct access by attemptId
-Route::get('/attempts/{attempt}', function ($attempt) {
-    $a = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $attempt);
-    if (!$a) { return response()->json(['message' => 'Tentativa não encontrada'], 404); }
-    return response()->json($a);
-});
+Route::get('/attempts/{attempt}', [SimuladoAttemptController::class, 'show']);
 
-Route::patch('/attempts/{attempt}', function ($attempt, \Illuminate\Http\Request $request) {
-    $key = 'simulado_attempt_' . $attempt;
-    $a = \Illuminate\Support\Facades\Cache::get($key);
-    if (!$a) { return response()->json(['message' => 'Tentativa não encontrada'], 404); }
-    $payload = $request->only(['currentQuestion','answers','timeRemaining']);
-    $a = array_merge($a, $payload);
-    \Illuminate\Support\Facades\Cache::put($key, $a, 86400);
-    return response()->json($a);
-});
+Route::patch('/attempts/{attempt}', [SimuladoAttemptController::class, 'updatePartial']);
 
-Route::post('/attempts/{attempt}/submit', function ($attempt, \Illuminate\Http\Request $request) use (&$getCatalog) {
-    $key = 'simulado_attempt_' . $attempt;
-    $a = \Illuminate\Support\Facades\Cache::get($key);
-    if (!$a) { return response()->json(['message' => 'Tentativa não encontrada'], 404); }
+Route::post('/attempts/{attempt}/submit', [SimuladoAttemptController::class, 'submit']);
 
-    // Merge provided answers if any
-    $answers = $request->input('answers');
-    if (is_array($answers)) {
-        $a['answers'] = array_merge($a['answers'] ?? [], $answers);
-    }
-
-    // Load simulado
-    $catalog = $getCatalog();
-    $simulado = null;
-    foreach ($catalog as $s) { if ($s['id'] === (int)($a['simuladoId'] ?? 0)) { $simulado = $s; break; } }
-    if (!$simulado) { return response()->json(['message' => 'Simulado não encontrado'], 404); }
-
-    $correct = 0; $details = [];
-    $total = count($simulado['questions'] ?? []);
-    foreach ($simulado['questions'] as $q) {
-        $userAnswer = $a['answers'][$q['id']] ?? null;
-        $isCorrect = $userAnswer !== null && $userAnswer === $q['correctAnswer'];
-        if ($isCorrect) $correct++;
-        $details[] = [
-            'questionId' => $q['id'],
-            'question' => $q['question'],
-            'userAnswer' => $userAnswer,
-            'correctAnswer' => $q['correctAnswer'],
-            'isCorrect' => $isCorrect,
-            'explanation' => !empty($simulado['showFeedback']) ? ($q['explanation'] ?? null) : null,
-            'options' => $q['options'],
-        ];
-    }
-    $score = $total > 0 ? round(($correct / $total) * 100) : 0;
-    $passed = $score >= (int)($simulado['minScore'] ?? 0);
-
-    $duration = ($simulado['duration'] ?? 0) - (int)($a['timeRemaining'] ?? 0);
-    if ($duration < 0) { $duration = 0; }
-
-    $result = [
-        'attemptId' => $a['id'],
-        'score' => $score,
-        'passed' => $passed,
-        'duration' => $duration,
-        'totalQuestions' => $total,
-        'correctAnswers' => $correct,
-        'wrongAnswers' => max(0, $total - $correct),
-        'details' => $details,
-        'certificateEligible' => $passed && (($simulado['type'] ?? '') === 'obrigatorio'),
-    ];
-
-    $a['submittedAt'] = now()->toISOString();
-    $a['result'] = $result;
-    \Illuminate\Support\Facades\Cache::put($key, $a, 86400);
-
-    // Optionally issue a certificate code
-    if ($result['certificateEligible']) {
-        $certId = 'cert_' . uniqid();
-        $result['certificateId'] = $certId;
-        \Illuminate\Support\Facades\Cache::put('simulado_certificate_' . $certId, [
-            'id' => $certId,
-            'attemptId' => $a['id'],
-            'simuladoId' => $a['simuladoId'],
-            'issuedAt' => now()->toISOString(),
-            'score' => $score,
-        ], 86400);
-        $a['result'] = $result;
-        \Illuminate\Support\Facades\Cache::put($key, $a, 86400);
-    }
-
-    return response()->json($result);
-});
-
-Route::get('/attempts/{attempt}/result', function ($attempt) {
-    $a = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $attempt);
-    if (!$a || empty($a['result'])) {
-        return response()->json(['message' => 'Resultado não disponível'], 404);
-    }
-    return response()->json($a['result']);
-});
+Route::get('/attempts/{attempt}/result', [SimuladoAttemptController::class, 'result']);
 
 // Certificates
-Route::post('/certificates', function (\Illuminate\Http\Request $request) {
-    $simuladoId = (int)$request->input('simuladoId');
-    $attemptId = (string)$request->input('attemptId');
-    $a = \Illuminate\Support\Facades\Cache::get('simulado_attempt_' . $attemptId);
-    if (!$a || (int)($a['simuladoId'] ?? 0) !== $simuladoId) {
-        return response()->json(['message' => 'Tentativa inválida'], 422);
-    }
-    $result = $a['result'] ?? null;
-    if (!$result || empty($result['passed'])) {
-        return response()->json(['message' => 'Certificado não elegível'], 422);
-    }
-    $certId = $result['certificateId'] ?? ('cert_' . uniqid());
-    $cert = [
-        'id' => $certId,
-        'attemptId' => $attemptId,
-        'simuladoId' => $simuladoId,
-        'issuedAt' => now()->toISOString(),
-        'score' => $result['score'] ?? 0,
-    ];
-    \Illuminate\Support\Facades\Cache::put('simulado_certificate_' . $certId, $cert, 86400);
-    return response()->json($cert, 201);
+Route::post('/certificates', [SimuladoCertificateController::class, 'issue']);
+
+Route::get('/certificates/verify', [SimuladoCertificateController::class, 'verify']);
+
+// ------------------------------------------------------------
+// Notifications API
+// ------------------------------------------------------------
+Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+    Route::get('/', [NotificationController::class, 'index']);
+    Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/stats', [NotificationController::class, 'stats']);
+    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::patch('/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::delete('/{id}', [NotificationController::class, 'destroy']);
 });
 
-Route::get('/certificates/verify', function (\Illuminate\Http\Request $request) {
-    $code = (string)$request->query('code', '');
-    if ($code === '') { return response()->json(['message' => 'Código requerido'], 422); }
-    $cert = \Illuminate\Support\Facades\Cache::get('simulado_certificate_' . $code);
-    if (!$cert) { return response()->json(['valid' => false], 404); }
-    return response()->json(['valid' => true, 'certificate' => $cert]);
+// Notification Preferences API
+// ------------------------------------------------------------
+Route::middleware('auth:sanctum')->prefix('notification-preferences')->group(function () {
+    Route::get('/', [NotificationPreferencesController::class, 'index']);
+    Route::put('/', [NotificationPreferencesController::class, 'update']);
+    Route::post('/reset', [NotificationPreferencesController::class, 'reset']);
+    Route::get('/settings', [NotificationPreferencesController::class, 'settings']);
 });

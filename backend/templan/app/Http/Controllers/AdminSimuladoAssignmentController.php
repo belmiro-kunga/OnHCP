@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Simulado;
 use App\Models\SimuladoAssignment;
+use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class AdminSimuladoAssignmentController extends Controller
@@ -26,6 +28,17 @@ class AdminSimuladoAssignmentController extends Controller
             'simulado_id' => $simulado->id,
             'assigned_by' => optional($request->user())->id,
         ]));
+
+        // Enviar notificação quando simulado é atribuído a usuário específico
+        if ($data['target_type'] === 'user') {
+            $user = User::find($data['target_id']);
+            if ($user) {
+                $notificationService = app(NotificationService::class);
+                $dueDate = $data['due_at'] ? new \DateTime($data['due_at']) : null;
+                $notificationService->simuladoAssigned($user, $simulado, $dueDate);
+            }
+        }
+        // TODO: Para course/class, implementar lógica para obter usuários e notificar cada um
 
         return response()->json($assignment, 201);
     }

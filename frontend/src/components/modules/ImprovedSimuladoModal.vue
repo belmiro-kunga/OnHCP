@@ -546,10 +546,18 @@ export default {
         if (!question.statement.trim()) {
           errors[`question_${index}_statement`] = `Enunciado da questão ${index + 1} é obrigatório`
         }
-        if (question.type === 'multiple_choice' && question.options.length < 2) {
-          errors[`question_${index}_options`] = `Questão ${index + 1} precisa de pelo menos 2 opções`
+        if (question.type === 'multiple_choice') {
+          // Verificar se pelo menos 2 opções têm texto
+          const filledOptions = question.options.filter(opt => opt.text && opt.text.trim())
+          if (filledOptions.length < 2) {
+            errors[`question_${index}_options_text`] = `Questão ${index + 1} precisa de pelo menos 2 opções preenchidas`
+          }
+          // Verificar se a resposta correta está entre as opções preenchidas
+          if (question.correctAnswer && !filledOptions.some(opt => opt.id === question.correctAnswer)) {
+            errors[`question_${index}_correct_answer`] = `Resposta correta da questão ${index + 1} deve ser uma das opções preenchidas`
+          }
         }
-        if (!question.correctAnswer) {
+        if (question.type !== 'essay' && !question.correctAnswer) {
           errors[`question_${index}_answer`] = `Resposta correta da questão ${index + 1} é obrigatória`
         }
       })
@@ -635,12 +643,14 @@ export default {
     const isQuestionValid = (question) => {
       if (!question.statement.trim()) return false
       if (question.type === 'multiple_choice') {
-        return question.options.length >= 2 && 
-               question.options.every(opt => opt.text.trim()) &&
-               question.correctAnswer
+        const filledOptions = question.options.filter(opt => opt.text && opt.text.trim())
+        return filledOptions.length >= 2 && question.correctAnswer && filledOptions.some(opt => opt.id === question.correctAnswer)
       }
       if (question.type === 'true_false') {
         return question.correctAnswer
+      }
+      if (question.type === 'essay') {
+        return true // Questões dissertativas só precisam do enunciado
       }
       return true
     }

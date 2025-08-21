@@ -44,6 +44,11 @@ export function useNavigation() {
       icon: 'IconChart'
     },
     { 
+      id: 'reports', 
+      name: 'Relatórios',
+      icon: 'IconChart'
+    },
+    { 
       id: 'cursos', 
       name: 'Cursos',
       icon: 'IconBook'

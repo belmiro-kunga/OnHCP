@@ -38,6 +38,7 @@ import AdminUsers from './modules/AdminUsers.vue'
 import AdminOnboarding from './modules/AdminOnboarding.vue'
 import AdminSimulado from './modules/AdminSimulado.vue'
 import AdminSimuladoCategories from './modules/AdminSimuladoCategories.vue'
+import AdminReports from './modules/AdminReports.vue'
 import AdminCursos from './modules/AdminCursos.vue'
 import AdminGamificacao from './modules/AdminGamificacao.vue'
 import AdminCertificados from './modules/AdminCertificados.vue'
@@ -56,6 +57,7 @@ export default {
     AdminOnboarding,
     AdminSimulado,
     AdminSimuladoCategories,
+    AdminReports,
     AdminCursos,
     AdminGamificacao,
     AdminCertificados,
@@ -76,6 +78,7 @@ export default {
       users: 'AdminUsers',
       simulado: 'AdminSimulado',
       'simulado-categories': 'AdminSimuladoCategories',
+      reports: 'AdminReports',
       onboarding: 'AdminOnboarding',
       cursos: 'AdminCursos',
       gamificacao: 'AdminGamificacao',

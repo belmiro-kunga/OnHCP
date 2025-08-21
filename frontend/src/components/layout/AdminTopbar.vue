@@ -51,16 +51,7 @@
       </button>
 
       <!-- Notifications -->
-      <button 
-        class="p-2 rounded-md hover:bg-gray-100 relative transition-colors"
-        @click="toggleNotifications"
-        aria-label="Notifications"
-      >
-        <svg class="w-5 h-5 lg:w-6 lg:h-6 text-text-secondary" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
-        </svg>
-        <span v-if="hasNotifications" class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
-      </button>
+      <NotificationDropdown />
 
       <!-- User Profile -->
       <div class="flex items-center space-x-2 lg:space-x-3">
@@ -90,15 +81,18 @@
 import { ref } from 'vue'
 import { useSidebar } from '../../composables/useSidebar.js'
 import { useNavigation } from '../../composables/useNavigation.js'
+import NotificationDropdown from '../notifications/NotificationDropdown.vue'
 
 export default {
   name: 'AdminTopbar',
+  components: {
+    NotificationDropdown
+  },
   setup() {
     const { toggleSidebar, toggleCollapse } = useSidebar()
     const { logout } = useNavigation()
     
     const searchQuery = ref('')
-    const hasNotifications = ref(true)
     const user = ref({
       name: 'Utilizador',
       role: 'Administrador',
@@ -110,23 +104,16 @@ export default {
       console.log('Toggle mobile search')
     }
 
-    const toggleNotifications = () => {
-      // Implementar painel de notificações
-      console.log('Toggle notifications')
-    }
-
     const handleLogout = () => {
       logout()
     }
 
     return {
       searchQuery,
-      hasNotifications,
       user,
       toggleSidebar,
       toggleCollapse,
       toggleMobileSearch,
-      toggleNotifications,
       handleLogout
     }
   }

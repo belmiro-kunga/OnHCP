@@ -15,6 +15,12 @@ class Kernel extends ConsoleKernel
         if (env('LDAP_SYNC_ENABLED', false)) {
             $schedule->command('ldap:sync-groups --limit=500')->everyThirtyMinutes()->withoutOverlapping();
         }
+        
+        // Enviar lembretes de prazo de simulados diariamente às 9h
+        $schedule->command('simulado:send-deadline-reminders')
+            ->dailyAt('09:00')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

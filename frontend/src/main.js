@@ -36,6 +36,11 @@ const routes = [
     meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
   },
   {
+    path: '/admin/dashboard/reports',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+  },
+  {
     path: '/admin/dashboard/onboarding',
     component: AdminDashboard,
     meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }

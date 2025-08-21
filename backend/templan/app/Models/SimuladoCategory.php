@@ -17,4 +17,12 @@ class SimuladoCategory extends Model
     {
         return $this->hasMany(Simulado::class, 'category_id');
     }
+
+    /**
+     * Escopo: ordenar por nome (asc)
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('name');
+    }
 }

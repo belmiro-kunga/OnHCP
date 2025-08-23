@@ -11,10 +11,12 @@
   "dependencies": {
     "axios": "^1.11.0",
     "chart.js": "^4.5.0",
+    "hls.js": "^1.6.10",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "laravel-echo": "^1.19.0",
     "pusher-js": "^8.4.0",
+    "video.js": "^8.23.4",
     "vue": "^3.4.0",
     "vue-chartjs": "^5.3.2",
     "vue-router": "^4.2.5",

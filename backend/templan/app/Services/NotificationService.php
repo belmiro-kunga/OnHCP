@@ -513,24 +513,7 @@ class NotificationService implements NotificationServiceInterface
                          ->update(['read_at' => now()]);
     }
 
-    /**
-     * Obtém notificações do usuário
-     */
-    public function getUserNotifications(
-        int $userId,
-        bool $unreadOnly = false,
-        int $limit = 50,
-        int $offset = 0
-    ): Collection {
-        $query = Notification::where('user_id', $userId)
-                           ->orderBy('created_at', 'desc');
-        
-        if ($unreadOnly) {
-            $query->unread();
-        }
-        
-        return $query->skip($offset)->take($limit)->get();
-    }
+
 
     /**
      * Conta notificações não lidas do usuário
@@ -547,5 +530,80 @@ class NotificationService implements NotificationServiceInterface
     {
         return Notification::where('created_at', '<', now()->subDays($daysOld))
                          ->delete();
+    }
+
+    /**
+     * Get user notifications with filters
+     */
+    public function getUserNotifications(
+        int $userId, 
+        bool $unreadOnly = false, 
+        ?string $type = null, 
+        int $limit = 20, 
+        int $offset = 0
+    ): Collection {
+        $query = Notification::where('user_id', $userId)
+                           ->orderBy('created_at', 'desc');
+
+        if ($unreadOnly) {
+            $query->unread();
+        }
+
+        if ($type) {
+            $query->ofType($type);
+        }
+
+        return $query->skip($offset)->take($limit)->get();
+    }
+
+    /**
+     * Delete a notification
+     */
+    public function deleteNotification(int $id, int $userId): bool
+    {
+        $notification = Notification::where('id', $id)
+                                  ->where('user_id', $userId)
+                                  ->first();
+
+        if (!$notification) {
+            return false;
+        }
+
+        return $notification->delete();
+    }
+
+    /**
+     * Get user notification statistics
+     */
+    public function getUserStats(int $userId): array
+    {
+        $stats = [
+            'total' => Notification::where('user_id', $userId)->count(),
+            'unread' => Notification::where('user_id', $userId)->unread()->count(),
+            'by_type' => [],
+            'by_priority' => [],
+        ];
+
+        // Estatísticas por tipo
+        $typeStats = Notification::where('user_id', $userId)
+                                ->selectRaw('type, COUNT(*) as count')
+                                ->groupBy('type')
+                                ->get();
+        
+        foreach ($typeStats as $stat) {
+            $stats['by_type'][$stat->type] = $stat->count;
+        }
+
+        // Estatísticas por prioridade
+        $priorityStats = Notification::where('user_id', $userId)
+                                   ->selectRaw('priority, COUNT(*) as count')
+                                   ->groupBy('priority')
+                                   ->get();
+        
+        foreach ($priorityStats as $stat) {
+            $stats['by_priority'][$stat->priority] = $stat->count;
+        }
+
+        return $stats;
     }
 }

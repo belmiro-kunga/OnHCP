@@ -33,6 +33,7 @@ use App\Http\Controllers\SimuladoCertificateController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Api\NotificationPreferencesController;
 use App\Http\Controllers\Api\ReportsController;
+use App\Http\Controllers\Admin\AdminCourseController;
 
 Route::get('/health', function () {
     return response()->json([
@@ -67,6 +68,132 @@ Route::middleware('auth:sanctum')->prefix('admin/simulado-categories')->group(fu
 });
 
 // ------------------------------------------------------------
+// Admin Cursos (com controladores reais + rotas de vídeo de suporte)
+// ------------------------------------------------------------
+Route::prefix('admin/cursos')->group(function () {
+    // CRUD de cursos (controller)
+    Route::get('/', [AdminCourseController::class, 'index']);
+    Route::post('/', [AdminCourseController::class, 'store']);
+    Route::get('/{id}', [AdminCourseController::class, 'show']);
+    Route::put('/{id}', [AdminCourseController::class, 'update']);
+    Route::delete('/{id}', [AdminCourseController::class, 'destroy']);
+
+    // Publicação
+    Route::post('/{id}/publish', [AdminCourseController::class, 'publish']);
+    Route::post('/{id}/unpublish', [AdminCourseController::class, 'unpublish']);
+
+    // Módulos (controller)
+    Route::post('/{courseId}/modules', [AdminCourseController::class, 'storeModule']);
+    Route::put('/{courseId}/modules/{moduleId}', [AdminCourseController::class, 'updateModule']);
+    Route::delete('/{courseId}/modules/{moduleId}', [AdminCourseController::class, 'destroyModule']);
+
+    // Aulas (controller)
+    Route::post('/{courseId}/modules/{moduleId}/lessons', [AdminCourseController::class, 'storeLesson']);
+    Route::put('/{courseId}/modules/{moduleId}/lessons/{lessonId}', [AdminCourseController::class, 'updateLesson']);
+    Route::delete('/{courseId}/modules/{moduleId}/lessons/{lessonId}', [AdminCourseController::class, 'destroyLesson']);
+
+    // Workflow de vídeo (implementação real)
+    Route::post('/{id}/video/upload-init', [\App\Http\Controllers\VideoUploadController::class, 'initializeUpload']);
+    Route::post('/{id}/video/upload-complete', [\App\Http\Controllers\VideoUploadController::class, 'completeUpload']);
+    Route::post('/{id}/video/upload-direct', [\App\Http\Controllers\VideoUploadController::class, 'directUpload']);
+    Route::post('/{id}/video/upload-abort', [\App\Http\Controllers\VideoUploadController::class, 'abortUpload']);
+    Route::get('/{id}/video/playback', [\App\Http\Controllers\VideoUploadController::class, 'getPlaybackUrls']);
+    Route::delete('/{id}/video', [\App\Http\Controllers\VideoUploadController::class, 'deleteVideo']);
+    Route::get('/video/upload/{uploadId}/status', [\App\Http\Controllers\VideoUploadController::class, 'getUploadStatus']);
+    Route::get('/lessons/{lessonId}/uploads', [\App\Http\Controllers\VideoUploadController::class, 'getLessonUploads']);
+    
+    // Progress tracking (mantido como stub por enquanto)
+    Route::post('/{id}/video/progress', function ($id, Illuminate\Http\Request $request) {
+        return response()->json(['data' => [
+            'cursoId' => (int)$id,
+            'position' => (float)$request->input('position', 0),
+            'percent' => (float)$request->input('percent', 0),
+            'completed' => (bool)$request->input('completed', false),
+        ]]);
+    });
+});
+
+// Categorias de Cursos
+Route::prefix('admin/curso-categories')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\AdminCourseCategoryController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Admin\AdminCourseCategoryController::class, 'store']);
+    Route::get('/{category}', [\App\Http\Controllers\Admin\AdminCourseCategoryController::class, 'show']);
+    Route::put('/{category}', [\App\Http\Controllers\Admin\AdminCourseCategoryController::class, 'update']);
+    Route::delete('/{category}', [\App\Http\Controllers\Admin\AdminCourseCategoryController::class, 'destroy']);
+    Route::post('/update-order', [\App\Http\Controllers\Admin\AdminCourseCategoryController::class, 'updateOrder']);
+    Route::post('/{category}/toggle-status', [\App\Http\Controllers\Admin\AdminCourseCategoryController::class, 'toggleStatus']);
+});
+
+// ------------------------------------------------------------
+// Sistema de Matrículas em Cursos
+// ------------------------------------------------------------
+Route::prefix('enrollments')->middleware('auth:sanctum')->group(function () {
+    // Matricular-se em um curso
+    Route::post('/courses/{courseId}', [\App\Http\Controllers\EnrollmentController::class, 'enroll']);
+    
+    // Listar minhas matrículas
+    Route::get('/my', [\App\Http\Controllers\EnrollmentController::class, 'myEnrollments']);
+    
+    // Detalhes de uma matrícula específica
+    Route::get('/{enrollmentId}', [\App\Http\Controllers\EnrollmentController::class, 'show']);
+    
+    // Atualizar progresso de uma aula
+    Route::post('/{enrollmentId}/lessons/{lessonId}/progress', [\App\Http\Controllers\EnrollmentController::class, 'updateLessonProgress']);
+    
+    // Cancelar matrícula
+    Route::delete('/{enrollmentId}', [\App\Http\Controllers\EnrollmentController::class, 'cancel']);
+});
+
+// Rotas administrativas para matrículas
+Route::prefix('admin/enrollments')->middleware('auth:sanctum')->group(function () {
+    // Estatísticas de matrículas
+    Route::get('/statistics', [\App\Http\Controllers\EnrollmentController::class, 'statistics']);
+    
+    // Listar todas as matrículas (com filtros)
+    Route::get('/', [\App\Http\Controllers\EnrollmentController::class, 'index']);
+    
+    // Matricular usuário em curso (admin)
+    Route::post('/courses/{courseId}/users/{userId}', [\App\Http\Controllers\EnrollmentController::class, 'adminEnroll']);
+    
+    // Gerenciar status de matrícula
+    Route::patch('/{enrollmentId}/status', [\App\Http\Controllers\EnrollmentController::class, 'updateStatus']);
+});
+
+// ------------------------------------------------------------
+// Rotas de Certificados
+// ------------------------------------------------------------
+
+// Rotas de usuário para certificados
+Route::prefix('certificates')->middleware('auth:sanctum')->group(function () {
+    // Gerar certificado para matrícula concluída
+    Route::post('/enrollments/{enrollment}/generate', [\App\Http\Controllers\CertificateController::class, 'generate']);
+    
+    // Listar meus certificados
+    Route::get('/my', [\App\Http\Controllers\CertificateController::class, 'index']);
+    
+    // Visualizar certificado específico
+    Route::get('/{certificate}', [\App\Http\Controllers\CertificateController::class, 'show']);
+    
+    // Baixar certificado em PDF
+    Route::get('/{certificate}/download', [\App\Http\Controllers\CertificateController::class, 'download']);
+});
+
+// Verificação pública de certificados (sem autenticação)
+Route::post('/certificates/verify', [\App\Http\Controllers\CertificateController::class, 'verify']);
+
+// Rotas administrativas para certificados
+Route::prefix('admin/certificates')->middleware('auth:sanctum')->group(function () {
+    // Estatísticas de certificados
+    Route::get('/statistics', [\App\Http\Controllers\CertificateController::class, 'stats']);
+    
+    // Listar todos os certificados (com filtros)
+    Route::get('/', [\App\Http\Controllers\CertificateController::class, 'adminIndex']);
+    
+    // Revogar certificado
+    Route::patch('/{certificate}/revoke', [\App\Http\Controllers\CertificateController::class, 'revoke']);
+});
+
+// ------------------------------------------------------------
 // User endpoints for Simulados
 // ------------------------------------------------------------
 Route::get('/me/simulados', [UserSimuladoController::class, 'mySimulados']);
@@ -93,6 +220,17 @@ Route::middleware('auth:sanctum')->prefix('directory')->group(function () {
     Route::put('/config', [DirectoryController::class, 'update'])->middleware('can:users.manage');
     Route::post('/test-connection', [DirectoryController::class, 'testConnection'])->middleware('can:users.manage');
     Route::get('/groups', [DirectoryController::class, 'groups'])->middleware('can:users.manage');
+});
+
+// Video Configuration (Cloudflare R2, YouTube API, Local) - protected
+Route::middleware('auth:sanctum')->prefix('video-config')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\VideoConfigController::class, 'index'])->middleware('can:users.manage');
+    Route::put('/source', [\App\Http\Controllers\Api\VideoConfigController::class, 'updateVideoSource'])->middleware('can:users.manage');
+    Route::put('/cloudflare', [\App\Http\Controllers\Api\VideoConfigController::class, 'updateCloudflareConfig'])->middleware('can:users.manage');
+    Route::put('/youtube', [\App\Http\Controllers\Api\VideoConfigController::class, 'updateYoutubeConfig'])->middleware('can:users.manage');
+    Route::post('/test/cloudflare', [\App\Http\Controllers\Api\VideoConfigController::class, 'testCloudflareConnection'])->middleware('can:users.manage');
+    Route::post('/test/youtube', [\App\Http\Controllers\Api\VideoConfigController::class, 'testYoutubeConnection'])->middleware('can:users.manage');
+    Route::post('/reset', [\App\Http\Controllers\Api\VideoConfigController::class, 'reset'])->middleware('can:users.manage');
 });
 
 // Reports - Dashboard de Relatórios
@@ -708,8 +846,8 @@ Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
     Route::get('/', [NotificationController::class, 'index']);
     Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
     Route::get('/stats', [NotificationController::class, 'stats']);
-    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     Route::patch('/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     Route::delete('/{id}', [NotificationController::class, 'destroy']);
 });
 

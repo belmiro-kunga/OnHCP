@@ -34,27 +34,59 @@
     <!-- Navigation Menu -->
     <nav class="mt-4 lg:mt-6">
       <div class="px-2 lg:px-3">
-        <button
-          v-for="item in menuItems"
-          :key="item.id"
-          @click="handleMenuItemClick(item.id)"
-          :class="[
-            'sidebar-item w-full text-left mb-1 rounded-md flex items-center',
-            !shouldShowMenuText ? 'justify-center' : '',
-            activeTab === item.id ? 'active' : ''
-          ]"
-        >
-          <component :is="iconMap[item.icon] || item.icon" :class="['w-5 h-5 flex-shrink-0', shouldShowMenuText ? 'mr-3' : 'mx-auto']" />
-          <span class="truncate" :class="shouldShowMenuText ? 'inline' : 'hidden'">
-            {{ item.name }}
-          </span>
-        </button>
+        <!-- Top-level items except simulado-categories (moved under submenu) -->
+        <template v-for="item in menuItems.filter(i => i.id !== 'simulado-categories')" :key="item.id">
+          <!-- Simulados with submenu -->
+          <div v-if="item.id === 'simulado'">
+            <button
+              @click="handleSimuladoClick"
+              :class="[
+                'sidebar-item w-full text-left mb-1 rounded-md flex items-center',
+                !shouldShowMenuText ? 'justify-center' : '',
+                activeTab === 'simulado' || activeTab === 'simulado-categories' ? 'active' : ''
+              ]"
+            >
+              <component :is="iconMap[item.icon] || item.icon" :class="['w-5 h-5 flex-shrink-0', shouldShowMenuText ? 'mr-3' : 'mx-auto']" />
+              <span class="truncate" :class="shouldShowMenuText ? 'inline' : 'hidden'">
+                {{ item.name }}
+              </span>
+              <span v-if="shouldShowMenuText" class="ml-auto text-xs opacity-70">{{ simuladoOpen ? '▾' : '▸' }}</span>
+            </button>
+            <!-- Submenu -->
+            <div v-show="simuladoOpen && shouldShowMenuText" class="ml-8 mb-2">
+              <button
+                @click="handleMenuItemClick('simulado-categories')"
+                :class="[
+                  'w-full text-left py-1.5 px-2 rounded-md mb-1 text-sm',
+                  activeTab === 'simulado-categories' ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
+                ]"
+              >
+                Categorias
+              </button>
+            </div>
+          </div>
+          <!-- Other items -->
+          <button v-else
+            @click="handleMenuItemClick(item.id)"
+            :class="[
+              'sidebar-item w-full text-left mb-1 rounded-md flex items-center',
+              !shouldShowMenuText ? 'justify-center' : '',
+              activeTab === item.id ? 'active' : ''
+            ]"
+          >
+            <component :is="iconMap[item.icon] || item.icon" :class="['w-5 h-5 flex-shrink-0', shouldShowMenuText ? 'mr-3' : 'mx-auto']" />
+            <span class="truncate" :class="shouldShowMenuText ? 'inline' : 'hidden'">
+              {{ item.name }}
+            </span>
+          </button>
+        </template>
       </div>
     </nav>
   </aside>
 </template>
 
 <script>
+import { ref, watch } from 'vue'
 import { useSidebar } from '../../composables/useSidebar.js'
 import { useNavigation } from '../../composables/useNavigation.js'
 import {
@@ -85,6 +117,12 @@ export default {
   setup() {
     const { sidebarOpen, sidebarCollapsed, shouldShowMenuText, closeSidebar } = useSidebar()
     const { activeTab, menuItems, selectMenuItem } = useNavigation()
+    const simuladoOpen = ref(false)
+
+    // abrir submenu quando a aba ativa for de categorias
+    watch(activeTab, (val) => {
+      if (val === 'simulado-categories') simuladoOpen.value = true
+    }, { immediate: true })
 
     // Mapear nomes de ícones (strings) para componentes importados
     const iconMap = {
@@ -107,6 +145,15 @@ export default {
       }
     }
 
+    const handleSimuladoClick = () => {
+      // Toggle submenu; if closed and clicked, open; if open and small screen, navigate to simulado
+      simuladoOpen.value = !simuladoOpen.value
+      // If user clicks when text is hidden (collapsed), navigate directly
+      if (!shouldShowMenuText) {
+        handleMenuItemClick('simulado')
+      }
+    }
+
     return {
       sidebarOpen,
       sidebarCollapsed,
@@ -115,7 +162,9 @@ export default {
       menuItems,
       iconMap,
       closeSidebar,
-      handleMenuItemClick
+      handleMenuItemClick,
+      simuladoOpen,
+      handleSimuladoClick
     }
   }
 }

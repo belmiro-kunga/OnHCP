@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Notification;
 use App\Contracts\NotificationServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -28,33 +27,41 @@ class NotificationController extends Controller
             'limit' => 'integer|min:1|max:100',
             'offset' => 'integer|min:0',
             'type' => ['string', Rule::in([
-                Notification::TYPE_SIMULADO_ASSIGNED,
-                Notification::TYPE_SIMULADO_COMPLETED,
-                Notification::TYPE_SIMULADO_PASSED,
-                Notification::TYPE_SIMULADO_FAILED,
-                Notification::TYPE_SIMULADO_DEADLINE,
+                'simulado_assigned',
+                'simulado_completed',
+                'simulado_passed',
+                'simulado_failed',
+                'simulado_deadline',
             ])],
         ]);
 
         $userId = Auth::id();
+        if (!$userId) {
+            return response()->json([
+                'message' => 'Unauthenticated'
+            ], 401);
+        }
         $unreadOnly = $request->boolean('unread_only', false);
         $limit = $request->integer('limit', 20);
         $offset = $request->integer('offset', 0);
         $type = $request->string('type');
 
-        $query = Notification::where('user_id', $userId)
-                           ->orderBy('created_at', 'desc');
-
-        if ($unreadOnly) {
-            $query->unread();
+        // Use NotificationService instead of direct Eloquent queries
+        try {
+            $notifications = $this->notificationService->getUserNotifications(
+                $userId, 
+                $unreadOnly, 
+                $type, 
+                $limit, 
+                $offset
+            );
+            $unreadCount = $this->notificationService->getUnreadCount($userId);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erro ao buscar notificações',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        if ($type) {
-            $query->ofType($type);
-        }
-
-        $notifications = $query->skip($offset)->take($limit)->get();
-        $unreadCount = $this->notificationService->getUnreadCount($userId);
 
         return response()->json([
             'notifications' => $notifications->map(function ($notification) {
@@ -81,10 +88,15 @@ class NotificationController extends Controller
     /**
      * Marca uma notificação como lida
      */
-    public function markAsRead(int $id): JsonResponse
+    public function markAsRead($id): JsonResponse
     {
         $userId = Auth::id();
-        $success = $this->notificationService->markAsRead($id, $userId);
+        if (!$userId) {
+            return response()->json([
+                'message' => 'Unauthenticated'
+            ], 401);
+        }
+        $success = $this->notificationService->markAsRead((int)$id, $userId);
 
         if (!$success) {
             return response()->json([
@@ -104,7 +116,12 @@ class NotificationController extends Controller
     public function markAllAsRead(): JsonResponse
     {
         $userId = Auth::id();
-        $count = $this->notificationService->markAllAsRead($userId);
+        if (!$userId) {
+            return response()->json([
+                'message' => 'Unauthenticated'
+            ], 401);
+        }
+        $count = $this->notificationService->markAllAsRead((int)$userId);
 
         return response()->json([
             'message' => "$count notificações marcadas como lidas",
@@ -119,7 +136,12 @@ class NotificationController extends Controller
     public function unreadCount(): JsonResponse
     {
         $userId = Auth::id();
-        $count = $this->notificationService->getUnreadCount($userId);
+        if (!$userId) {
+            return response()->json([
+                'unread_count' => 0
+            ]);
+        }
+        $count = $this->notificationService->getUnreadCount((int)$userId);
 
         return response()->json([
             'unread_count' => $count
@@ -129,20 +151,29 @@ class NotificationController extends Controller
     /**
      * Remove uma notificação
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy($id): JsonResponse
     {
         $userId = Auth::id();
-        $notification = Notification::where('id', $id)
-                                  ->where('user_id', $userId)
-                                  ->first();
-
-        if (!$notification) {
+        if (!$userId) {
             return response()->json([
-                'message' => 'Notificação não encontrada'
-            ], 404);
+                'message' => 'Unauthenticated'
+            ], 401);
         }
-
-        $notification->delete();
+        // Use NotificationService instead of direct Eloquent queries
+        try {
+            $success = $this->notificationService->deleteNotification((int)$id, $userId);
+            
+            if (!$success) {
+                return response()->json([
+                    'message' => 'Notificação não encontrada'
+                ], 404);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erro ao remover notificação',
+                'error' => $e->getMessage()
+            ], 500);
+        }
 
         return response()->json([
             'message' => 'Notificação removida',
@@ -156,32 +187,23 @@ class NotificationController extends Controller
     public function stats(): JsonResponse
     {
         $userId = Auth::id();
-        
-        $stats = [
-            'total' => Notification::where('user_id', $userId)->count(),
-            'unread' => Notification::where('user_id', $userId)->unread()->count(),
-            'by_type' => [],
-            'by_priority' => [],
-        ];
-
-        // Estatísticas por tipo
-        $typeStats = Notification::where('user_id', $userId)
-                                ->selectRaw('type, COUNT(*) as count')
-                                ->groupBy('type')
-                                ->get();
-        
-        foreach ($typeStats as $stat) {
-            $stats['by_type'][$stat->type] = $stat->count;
+        if (!$userId) {
+            return response()->json([
+                'total' => 0,
+                'unread' => 0,
+                'by_type' => [],
+                'by_priority' => [],
+            ]);
         }
-
-        // Estatísticas por prioridade
-        $priorityStats = Notification::where('user_id', $userId)
-                                   ->selectRaw('priority, COUNT(*) as count')
-                                   ->groupBy('priority')
-                                   ->get();
         
-        foreach ($priorityStats as $stat) {
-            $stats['by_priority'][$stat->priority] = $stat->count;
+        // Use NotificationService instead of direct Eloquent queries
+        try {
+            $stats = $this->notificationService->getUserStats($userId);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erro ao obter estatísticas',
+                'error' => $e->getMessage()
+            ], 500);
         }
 
         return response()->json($stats);

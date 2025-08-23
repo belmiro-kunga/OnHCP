@@ -10,9 +10,17 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Services\RoleResolver;
+use App\Services\CacheOptimizationService;
 
 class UserController extends Controller
 {
+    protected $cacheService;
+
+    public function __construct(CacheOptimizationService $cacheService)
+    {
+        $this->cacheService = $cacheService;
+    }
+
     // GET /api/users
     public function index(Request $request)
     {
@@ -21,30 +29,23 @@ class UserController extends Controller
         $q = trim((string) $request->query('q', ''));
         $status = $request->query('status');
 
-        $query = User::with(['role:id,name', 'department:id,name'])
-                    ->select(['id', 'name', 'email', 'status', 'role_id', 'department_id', 'created_at']);
-
+        // Usar cache para consultas de usuários
+        $filters = [];
         if ($q !== '') {
-            $query->where(function ($qBuilder) use ($q) {
-                $qBuilder->where('name', 'like', "%{$q}%")
-                        ->orWhere('email', 'like', "%{$q}%");
-            });
+            $filters['search'] = $q;
         }
-
-        // Optional status filter if column exists
         if (!is_null($status) && Schema::hasColumn('users', 'status')) {
-            $query->where('status', $status);
+            $filters['status'] = $status;
         }
 
-        $paginator = $query->orderBy('created_at', 'desc')
-                          ->paginate($perPage, ['*'], 'page', $page);
+        $result = $this->cacheService->getUsers($filters, $page, $perPage);
 
         return response()->json([
-            'data' => $paginator->items(),
+            'data' => $result['data'],
             'meta' => [
-                'page' => $paginator->currentPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
+                'page' => $result['current_page'],
+                'per_page' => $result['per_page'],
+                'total' => $result['total'],
             ],
         ]);
     }

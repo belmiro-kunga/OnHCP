@@ -42,6 +42,40 @@ class User extends Authenticatable
     ];
 
     /**
+     * Relacionamento com matrículas em cursos
+     */
+    public function courseEnrollments()
+    {
+        return $this->hasMany(UserCourseEnrollment::class);
+    }
+
+    /**
+     * Relacionamento com cursos através das matrículas
+     */
+    public function enrolledCourses()
+    {
+        return $this->belongsToMany(Course::class, 'user_course_enrollments')
+                    ->withPivot(['status', 'enrolled_at', 'completed_at', 'progress_percentage', 'final_grade', 'certificate_issued'])
+                    ->withTimestamps();
+    }
+
+    /**
+     * Relacionamento com cursos ativos
+     */
+    public function activeCourses()
+    {
+        return $this->enrolledCourses()->wherePivot('status', 'active');
+    }
+
+    /**
+     * Relacionamento com cursos completados
+     */
+    public function completedCourses()
+    {
+        return $this->enrolledCourses()->wherePivot('status', 'completed');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

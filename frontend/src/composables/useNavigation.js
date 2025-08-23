@@ -49,11 +49,6 @@ export function useNavigation() {
       icon: 'IconChart'
     },
     { 
-      id: 'analytics', 
-      name: 'Analytics',
-      icon: 'IconChart'
-    },
-    { 
       id: 'cursos', 
       name: 'Cursos',
       icon: 'IconBook'
@@ -79,8 +74,12 @@ export function useNavigation() {
     // Só navegar se a aba não estiver já ativa
     if (activeTab.value !== tabId) {
       activeTab.value = tabId
-      // Navegar para a rota correspondente
-      router.push(`/admin/dashboard/${tabId}`)
+      // Navegar para a rota correspondente (suporta rotas aninhadas)
+      const routeMap = {
+        'simulado-categories': '/admin/dashboard/simulado/categories'
+      }
+      const target = routeMap[tabId] || `/admin/dashboard/${tabId}`
+      router.push(target)
     }
   }
 

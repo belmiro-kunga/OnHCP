@@ -34,5 +34,8 @@ class DatabaseSeeder extends Seeder
         
         // Create simulados with questions
         $this->call(SimuladoSeeder::class);
+
+        // Create a sample video course with modules and lessons
+        $this->call(CourseSeeder::class);
     }
 }

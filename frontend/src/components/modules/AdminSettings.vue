@@ -52,6 +52,15 @@
               Email
             </button>
           </li>
+          <li>
+            <button
+              class="whitespace-nowrap py-3 border-b-2 text-sm font-medium"
+              :class="subTab === 'video' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+              @click="selectSubTab('video')"
+            >
+              Vídeo
+            </button>
+          </li>
         </ul>
       </nav>
 
@@ -112,6 +121,11 @@
       <div v-if="subTab === 'email'" class="space-y-8">
         <AdminEmail />
       </div>
+
+      <!-- Conteúdo: Vídeo -->
+      <div v-if="subTab === 'video'" class="space-y-8">
+        <AdminVideoConfig />
+      </div>
     </div>
   </div>
 </template>
@@ -124,10 +138,11 @@ import { getLoginMode, setLoginMode } from '../../composables/useAuth'
 import AdminSecurity from './AdminSecurity.vue'
 import AdminAudit from './AdminAudit.vue'
 import AdminEmail from './AdminEmail.vue'
+import AdminVideoConfig from './AdminVideoConfig.vue'
 
 export default {
   name: 'AdminSettings',
-  components: { AdminSecurity, AdminAudit, AdminEmail },
+  components: { AdminSecurity, AdminAudit, AdminEmail, AdminVideoConfig },
   setup() {
     const { can } = usePermissions()
     const router = useRouter()
@@ -179,6 +194,7 @@ export default {
       if (tab === 'security') router.replace('/admin/dashboard/settings/security')
       if (tab === 'audit') router.replace('/admin/dashboard/settings/audit')
       if (tab === 'email') router.replace('/admin/dashboard/settings/email')
+      if (tab === 'video') router.replace('/admin/dashboard/settings/video')
     }
 
     onMounted(() => {
@@ -193,6 +209,8 @@ export default {
         subTab.value = 'audit'
       } else if (path.endsWith('/settings/email')) {
         subTab.value = 'email'
+      } else if (path.endsWith('/settings/video')) {
+        subTab.value = 'video'
       }
     })
 

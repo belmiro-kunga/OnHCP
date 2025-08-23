@@ -1,22 +1,62 @@
 <template>
   <section class="p-4 md:p-6">
-    <header class="mb-4 flex items-center justify-between">
-      <h2 class="text-xl md:text-2xl font-semibold text-text-primary">Gestão de Simulados</h2>
-      <div class="flex items-center gap-2">
-        <button
-          class="px-3 py-2 rounded-md border hover:bg-muted"
-          :disabled="loading"
-          @click="openCreate()"
-        >
-          Novo Simulado
-        </button>
-        <button
-          class="px-3 py-2 rounded-md bg-primary text-white disabled:opacity-60"
-          :disabled="loading"
-          @click="loadSimulados"
-        >
-          Recarregar
-        </button>
+    <header class="mb-4">
+      <div class="flex items-start md:items-center justify-between gap-3 flex-col md:flex-row">
+        <h2 class="text-xl md:text-2xl font-semibold text-text-primary">Gestão de Simulados</h2>
+        <div class="flex items-center gap-2">
+          <button
+            class="px-3 py-2 rounded-md border hover:bg-muted"
+            :disabled="loading"
+            @click="openCreate()"
+            title="Criar novo simulado"
+          >➕ <span class="hidden sm:inline">Novo</span></button>
+          <button
+            class="px-3 py-2 rounded-md bg-primary text-white disabled:opacity-60"
+            :disabled="loading"
+            @click="loadSimulados"
+            title="Recarregar lista"
+          >⟳ <span class="hidden sm:inline">Recarregar</span></button>
+          <button
+            class="px-3 py-2 rounded-md border hover:bg-muted"
+            @click="$router.push('/admin/dashboard/simulado/categories')"
+            title="Gerir categorias de simulados"
+          >📂 <span class="hidden sm:inline">Categorias</span></button>
+        </div>
+      </div>
+      <!-- Toolbar: busca, filtros, paginação -->
+      <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="md:col-span-2">
+          <input
+            v-model.trim="search"
+            type="text"
+            class="w-full border rounded px-3 py-2"
+            placeholder="Pesquisar por título ou descrição..."
+          />
+        </div>
+        <div class="flex gap-2 items-center">
+          <select v-model="selectedCategory" class="w-full border rounded px-3 py-2">
+            <option :value="''">Todas categorias</option>
+            <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+          <button
+            class="px-3 py-2 rounded-md border hover:bg-muted whitespace-nowrap"
+            @click="$router.push('/admin/dashboard/simulado/categories')"
+            title="Gerir categorias"
+          >Gerir</button>
+        </div>
+        <div class="flex gap-2">
+          <select v-model="selectedType" class="flex-1 border rounded px-3 py-2">
+            <option value="">Todos tipos</option>
+            <option value="obrigatorio">obrigatorio</option>
+            <option value="pratica">pratica</option>
+          </select>
+          <select v-model.number="itemsPerPage" class="w-28 border rounded px-3 py-2" title="Itens por página">
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+          </select>
+        </div>
       </div>
     </header>
 
@@ -24,13 +64,28 @@
       {{ error }}
     </div>
 
-    <div v-if="loading" class="mb-4 p-3 rounded-md border border-border bg-surface text-text-secondary">
-      A carregar simulados...
+    <div v-if="loading" class="mb-4 rounded-lg border border-border overflow-hidden">
+      <div class="bg-muted/50 px-4 py-3 text-sm text-text-secondary">A carregar simulados...</div>
+      <table class="min-w-full">
+        <tbody>
+          <tr v-for="n in 5" :key="'sk-'+n" class="border-t border-border">
+            <td class="px-4 py-3">
+              <div class="skeleton h-4 w-48 mb-2"></div>
+              <div class="skeleton h-3 w-72"></div>
+            </td>
+            <td class="px-4 py-3"><div class="skeleton h-4 w-16"></div></td>
+            <td class="px-4 py-3"><div class="skeleton h-4 w-12"></div></td>
+            <td class="px-4 py-3"><div class="skeleton h-4 w-16"></div></td>
+            <td class="px-4 py-3"><div class="skeleton h-4 w-20"></div></td>
+            <td class="px-4 py-3 text-right"><div class="skeleton h-8 w-40 ml-auto"></div></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="rounded-lg border border-border overflow-hidden">
       <table class="min-w-full divide-y divide-border">
-        <thead class="bg-muted/50">
+        <thead class="bg-muted/50 sticky top-0 z-10">
           <tr>
             <th class="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Título</th>
             <th class="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Duração</th>
@@ -40,32 +95,44 @@
             <th class="px-4 py-3"></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-border bg-surface">
-          <tr v-for="s in simulados" :key="s.id">
-            <td class="px-4 py-3">
+        <tbody class="divide-y divide-border">
+          <tr v-for="s in paginatedSimulados" :key="s.id" class="odd:bg-surface even:bg-muted/20 hover:bg-muted/40">
+            <td class="px-4 py-3 align-top">
               <div class="font-medium text-text-primary">{{ s.title }}</div>
-              <div class="text-xs text-text-secondary/80">{{ s.description }}</div>
+              <div class="text-xs text-text-secondary/80 line-clamp-2">{{ s.description }}</div>
             </td>
-            <td class="px-4 py-3 text-sm">{{ formatDuration(s.duration) }}</td>
-            <td class="px-4 py-3 text-sm">{{ s.min_score ?? s.minScore }}%</td>
-            <td class="px-4 py-3 text-sm">{{ s.max_attempts ?? s.maxAttempts }}</td>
-            <td class="px-4 py-3 text-sm capitalize">{{ s.type }}</td>
-            <td class="px-4 py-3 text-right">
-              <div class="flex items-center justify-end gap-2">
-                <button class="px-3 py-1.5 text-sm rounded-md border hover:bg-muted" @click="viewDetails(s)">Detalhes</button>
-                <button class="px-3 py-1.5 text-sm rounded-md border hover:bg-muted" @click="openEdit(s)">Editar</button>
-                <button class="px-3 py-1.5 text-sm rounded-md border hover:bg-muted" @click="openAssign(s)">Atribuir</button>
-                <button class="px-3 py-1.5 text-sm rounded-md border hover:bg-muted" @click="toggleAttempts(s)">
-                  {{ expandedSimuladoId === s.id ? 'Ocultar tentativas' : 'Ver tentativas' }}
+            <td class="px-4 py-3 text-sm align-top">{{ formatDuration(s.duration) }}</td>
+            <td class="px-4 py-3 text-sm align-top">{{ s.min_score ?? s.minScore }}%</td>
+            <td class="px-4 py-3 text-sm align-top">{{ s.max_attempts ?? s.maxAttempts }}</td>
+            <td class="px-4 py-3 text-sm capitalize align-top">{{ s.type }}</td>
+            <td class="px-4 py-3 text-right align-top">
+              <div class="flex items-center justify-end gap-1 sm:gap-2">
+                <button class="px-2 py-1.5 text-sm rounded-md border hover:bg-muted" @click="viewDetails(s)" title="Detalhes">🔎<span class="hidden md:inline"> Detalhes</span></button>
+                <button class="px-2 py-1.5 text-sm rounded-md border hover:bg-muted" @click="openEdit(s)" title="Editar">✏️<span class="hidden md:inline"> Editar</span></button>
+                <button class="px-2 py-1.5 text-sm rounded-md border hover:bg-muted" @click="openAssign(s)" title="Atribuir">📌<span class="hidden md:inline"> Atribuir</span></button>
+                <button class="px-2 py-1.5 text-sm rounded-md border hover:bg-muted" @click="toggleAttempts(s)" title="Tentativas">
+                  {{ expandedSimuladoId === s.id ? '▾ Ocultar' : '▸ Ver' }}
                 </button>
               </div>
             </td>
           </tr>
-          <tr v-if="simulados.length === 0 && !loading">
+          <tr v-if="totalFiltered === 0 && !loading">
             <td colspan="6" class="px-4 py-6 text-center text-text-secondary">Sem simulados</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Paginação -->
+    <div class="mt-4 flex flex-col md:flex-row items-center justify-between gap-2" v-if="totalFiltered > 0">
+      <div class="text-sm text-text-secondary">
+        Mostrando {{ pageStart + 1 }}–{{ pageEnd }} de {{ totalFiltered }}
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-1.5 rounded border" :disabled="currentPage === 1" @click="currentPage = Math.max(1, currentPage - 1)">Anterior</button>
+        <div class="text-sm">Página {{ currentPage }} / {{ totalPages }}</div>
+        <button class="px-3 py-1.5 rounded border" :disabled="currentPage === totalPages" @click="currentPage = Math.min(totalPages, currentPage + 1)">Seguinte</button>
+      </div>
     </div>
 
     <!-- Tentativas -->
@@ -75,7 +142,20 @@
         <button class="px-3 py-1.5 text-sm rounded-md border hover:bg-muted" :disabled="attemptsLoading" @click="loadAttempts(expandedSimuladoId)">Recarregar</button>
       </div>
       <div v-if="attemptsError" class="m-4 p-3 rounded-md border border-red-300 bg-red-50 text-red-700">{{ attemptsError }}</div>
-      <table class="min-w-full divide-y divide-border">
+
+      <!-- Skeleton de tentativas -->
+      <div v-if="attemptsLoading" class="p-4">
+        <div v-for="n in 4" :key="'atk-sk-'+n" class="grid grid-cols-6 gap-4 py-2 border-b border-border">
+          <div class="skeleton h-4 w-40"></div>
+          <div class="skeleton h-4 w-28"></div>
+          <div class="skeleton h-4 w-12"></div>
+          <div class="skeleton h-4 w-16"></div>
+          <div class="skeleton h-4 w-20"></div>
+          <div class="skeleton h-5 w-24 ml-auto"></div>
+        </div>
+      </div>
+
+      <table v-else class="min-w-full divide-y divide-border">
         <thead class="bg-muted/50">
           <tr>
             <th class="px-4 py-3 text-left text-sm font-semibold text-text-secondary">ID</th>
@@ -142,157 +222,194 @@
       @create="handleCreateSimulado"
     />
 
-    <!-- Modal Editar Simulado -->
+    <!-- Modal Editar Simulado (melhorado) -->
     <div v-if="showEdit" class="fixed inset-0 bg-black/40 flex items-start justify-center z-50 overflow-y-auto p-4">
-      <div class="w-full max-w-xl rounded-lg shadow-lg border border-border bg-surface modal-panel">
-        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
-          <h3 class="font-semibold text-text-primary">Editar Simulado</h3>
-          <button class="p-1 rounded hover:bg-muted" @click="closeEdit">✕</button>
+      <div class="w-full max-w-4xl rounded-lg shadow-lg border border-border bg-surface modal-panel">
+        <!-- Header -->
+        <div class="px-4 py-3 border-b border-border flex items-center justify-between sticky top-0 bg-surface z-10">
+          <div class="flex items-center gap-3">
+            <h3 class="font-semibold text-text-primary">Editar Simulado</h3>
+            <span v-if="formEdit?.id" class="text-xs text-text-secondary">ID: {{ formEdit.id }}</span>
+          </div>
+          <button class="p-1 rounded hover:bg-muted" @click="closeEdit" title="Fechar">✕</button>
         </div>
-        <div class="p-4 grid gap-3 text-sm modal-body">
-          <label class="grid gap-1">
-            <span>Título</span>
-            <input v-model="formEdit.title" class="border rounded px-2 py-1" placeholder="Título" />
-          </label>
-          <label class="grid gap-1">
-            <span>Descrição</span>
-            <textarea v-model="formEdit.description" class="border rounded px-2 py-1" placeholder="Descrição" />
-          </label>
-          <div class="grid grid-cols-3 gap-3">
-            <label class="grid gap-1">
-              <span>Duração (seg)</span>
-              <input type="number" v-model.number="formEdit.duration" class="border rounded px-2 py-1" />
-            </label>
-            <label class="grid gap-1">
-              <span>Mín. Nota (%)</span>
-              <input type="number" v-model.number="formEdit.min_score" class="border rounded px-2 py-1" />
-            </label>
-            <label class="grid gap-1">
-              <span>Máx. Tentativas</span>
-              <input type="number" v-model.number="formEdit.max_attempts" class="border rounded px-2 py-1" />
-            </label>
-          </div>
-          <div class="grid grid-cols-2 gap-3 items-center">
-            <label class="grid gap-1">
-              <span>Tipo</span>
-              <select v-model="formEdit.type" class="border rounded px-2 py-1">
-                <option value="obrigatorio">obrigatorio</option>
-                <option value="pratica">pratica</option>
-              </select>
-            </label>
-            <label class="grid gap-1">
-              <span>Categoria</span>
-              <select v-model="formEdit.category_id" class="border rounded px-2 py-1">
-                <option :value="null">Sem categoria</option>
-                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
-            </label>
-            <label class="flex items-center gap-2 mt-6">
-              <input type="checkbox" v-model="formEdit.allow_navigation" />
-              <span>Navegação livre</span>
-            </label>
-            <label class="flex items-center gap-2">
-              <input type="checkbox" v-model="formEdit.allow_save_progress" />
-              <span>Guardar progresso</span>
-            </label>
-            <label class="flex items-center gap-2">
-              <input type="checkbox" v-model="formEdit.show_feedback" />
-              <span>Mostrar feedback</span>
-            </label>
-          </div>
 
-          <div class="mt-4">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="font-semibold">Questões</h4>
-              <button class="px-2 py-1 text-sm rounded bg-primary text-white hover:opacity-90" @click="addQuestionEdit">+ Adicionar questão</button>
+        <!-- Tabs -->
+        <div class="px-4 pt-3 border-b border-border bg-surface sticky top-[49px] z-10">
+          <div class="flex items-center gap-2">
+            <button
+              class="px-3 py-2 text-sm rounded border"
+              :class="editTab === 'geral' ? 'bg-primary text-white border-primary' : 'hover:bg-muted'"
+              @click="editTab = 'geral'"
+            >Geral</button>
+            <button
+              class="px-3 py-2 text-sm rounded border"
+              :class="editTab === 'perguntas' ? 'bg-primary text-white border-primary' : 'hover:bg-muted'"
+              @click="editTab = 'perguntas'"
+            >Perguntas</button>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="p-4 grid gap-4 text-sm modal-body">
+          <!-- Tab: Geral -->
+          <div v-show="editTab === 'geral'" class="grid gap-4">
+            <div class="grid gap-3 md:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="text-xs text-text-secondary">Título</span>
+                <input v-model="formEdit.title" class="border rounded px-3 py-2" placeholder="Título" />
+              </label>
+              <label class="grid gap-1">
+                <span class="text-xs text-text-secondary">Categoria</span>
+                <select v-model="formEdit.category_id" class="border rounded px-3 py-2">
+                  <option :value="null">Sem categoria</option>
+                  <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+                </select>
+              </label>
             </div>
-            <div v-if="!formEdit.questions.length" class="text-text-secondary text-sm">Nenhuma questão adicionada.</div>
+            <label class="grid gap-1">
+              <span class="text-xs text-text-secondary">Descrição</span>
+              <textarea v-model="formEdit.description" class="border rounded px-3 py-2" rows="3" placeholder="Descrição" />
+            </label>
+            <div class="grid gap-3 md:grid-cols-3">
+              <label class="grid gap-1">
+                <span class="text-xs text-text-secondary">Duração (seg)</span>
+                <input type="number" v-model.number="formEdit.duration" class="border rounded px-3 py-2" />
+              </label>
+              <label class="grid gap-1">
+                <span class="text-xs text-text-secondary">Mín. Nota (%)</span>
+                <input type="number" v-model.number="formEdit.min_score" class="border rounded px-3 py-2" />
+              </label>
+              <label class="grid gap-1">
+                <span class="text-xs text-text-secondary">Máx. Tentativas</span>
+                <input type="number" v-model.number="formEdit.max_attempts" class="border rounded px-3 py-2" />
+              </label>
+            </div>
+            <div class="grid md:grid-cols-3 gap-3">
+              <label class="grid gap-1">
+                <span class="text-xs text-text-secondary">Tipo</span>
+                <select v-model="formEdit.type" class="border rounded px-3 py-2">
+                  <option value="obrigatorio">obrigatorio</option>
+                  <option value="pratica">pratica</option>
+                </select>
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="formEdit.allow_navigation" />
+                <span>Navegação livre</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="formEdit.allow_save_progress" />
+                <span>Guardar progresso</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="formEdit.show_feedback" />
+                <span>Mostrar feedback</span>
+              </label>
+            </div>
+          </div>
 
-            <div v-for="(q, idx) in formEdit.questions" :key="'e-'+idx" class="border border-border rounded p-3 mb-3">
-              <div class="flex items-center justify-between mb-2">
-                <div class="font-medium">Questão {{ idx + 1 }}</div>
+          <!-- Tab: Perguntas -->
+          <div v-show="editTab === 'perguntas'" class="grid gap-3">
+            <div class="flex items-center justify-between">
+              <h4 class="font-semibold">Perguntas ({{ formEdit.questions.length || 0 }})</h4>
+              <div class="flex items-center gap-2">
+                <button class="px-2 py-1 text-sm rounded bg-primary text-white hover:opacity-90" @click="addQuestionEdit">+ Adicionar</button>
+              </div>
+            </div>
+            <div v-if="!formEdit.questions.length" class="text-text-secondary text-sm">Nenhuma pergunta adicionada.</div>
+
+            <div v-for="(q, idx) in formEdit.questions" :key="'e-'+idx" class="border border-border rounded">
+              <div class="px-3 py-2 bg-muted/50 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm">Pergunta {{ idx + 1 }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded bg-neutral-100 text-text-secondary">{{ q.q_type || 'multiple_choice' }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded bg-neutral-100 text-text-secondary">peso: {{ q.weight ?? 1 }}</span>
+                </div>
                 <button class="text-red-600 text-sm" @click="removeQuestionEdit(idx)">Remover</button>
               </div>
 
-              <div class="grid grid-cols-2 gap-3 mb-2">
-                <label class="grid gap-1 col-span-2">
-                  <span>Enunciado</span>
-                  <textarea v-model="q.statement" class="border rounded px-2 py-1" rows="2" placeholder="Texto da questão..."></textarea>
+              <div class="p-3 grid gap-3">
+                <label class="grid gap-1">
+                  <span class="text-xs text-text-secondary">Enunciado</span>
+                  <textarea v-model="q.statement" class="border rounded px-3 py-2" rows="2" placeholder="Texto da questão..."></textarea>
                   <span v-if="!q.statement" class="text-xs text-red-600">Obrigatório</span>
                 </label>
-                <label class="grid gap-1">
-                  <span>Tipo</span>
-                  <select v-model="q.q_type" class="border rounded px-2 py-1">
-                    <option value="multiple_choice">multiple_choice</option>
-                    <option value="true_false">true_false</option>
-                    <option value="essay">essay</option>
-                    <option value="ordering">ordering</option>
-                  </select>
-                </label>
-                <label class="grid gap-1">
-                  <span>Peso</span>
-                  <input type="number" min="1" v-model.number="q.weight" class="border rounded px-2 py-1" />
-                </label>
-                <label class="grid gap-1">
-                  <span>Dificuldade</span>
-                  <select v-model="q.difficulty" class="border rounded px-2 py-1">
-                    <option value="easy">easy</option>
-                    <option value="medium">medium</option>
-                    <option value="hard">hard</option>
-                  </select>
-                </label>
-              </div>
 
-              <div v-if="q.q_type === 'multiple_choice'" class="mb-2">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-sm text-text-secondary">Opções</span>
-                  <button class="text-sm" @click="addOptionEdit(q)">+ opção</button>
+                <div class="grid gap-3 md:grid-cols-4">
+                  <label class="grid gap-1">
+                    <span class="text-xs text-text-secondary">Tipo</span>
+                    <select v-model="q.q_type" class="border rounded px-3 py-2">
+                      <option value="multiple_choice">multiple_choice</option>
+                      <option value="true_false">true_false</option>
+                      <option value="essay">essay</option>
+                      <option value="ordering">ordering</option>
+                    </select>
+                  </label>
+                  <label class="grid gap-1">
+                    <span class="text-xs text-text-secondary">Peso</span>
+                    <input type="number" min="1" v-model.number="q.weight" class="border rounded px-3 py-2" />
+                  </label>
+                  <label class="grid gap-1">
+                    <span class="text-xs text-text-secondary">Dificuldade</span>
+                    <select v-model="q.difficulty" class="border rounded px-3 py-2">
+                      <option value="easy">easy</option>
+                      <option value="medium">medium</option>
+                      <option value="hard">hard</option>
+                    </select>
+                  </label>
                 </div>
-                <div v-for="(opt, oi) in q.options" :key="'ec-'+oi" class="flex items-center gap-2 mb-1">
-                  <input v-model="q.options[oi]" class="border rounded px-2 py-1 flex-1" placeholder="Opção" />
-                  <button class="text-xs text-red-600" @click="removeOptionEdit(q, oi)">remover</button>
-                </div>
-                <label class="grid gap-1 mt-2">
-                  <span>Resposta correta</span>
-                  <select v-model="q.correct_answer" class="border rounded px-2 py-1">
-                    <option v-for="(opt, oi) in q.options" :key="'ec-'+oi" :value="opt">{{ opt || `Opção ${oi+1}` }}</option>
-                  </select>
-                </label>
-                <div class="text-xs text-red-600 mt-1" v-if="(q.options || []).filter(o => (o||'').length > 0).length < 2">Mínimo 2 opções</div>
-                <div class="text-xs text-red-600" v-if="q.correct_answer && !(q.options || []).includes(q.correct_answer)">Resposta correta deve ser uma das opções</div>
-              </div>
 
-              <div v-else-if="q.q_type === 'true_false'" class="mb-2">
-                <label class="grid gap-1">
-                  <span>Resposta correta</span>
-                  <select v-model="q.correct_answer" class="border rounded px-2 py-1">
+                <div v-if="q.q_type === 'multiple_choice'" class="grid gap-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-text-secondary">Opções</span>
+                    <button class="text-sm" @click="addOptionEdit(q)">+ opção</button>
+                  </div>
+                  <div v-for="(opt, oi) in q.options" :key="'ec-'+oi" class="flex items-center gap-2">
+                    <input v-model="q.options[oi]" class="border rounded px-3 py-2 flex-1" placeholder="Opção" />
+                    <button class="text-xs text-red-600" @click="removeOptionEdit(q, oi)">remover</button>
+                  </div>
+                  <label class="grid gap-1">
+                    <span class="text-xs text-text-secondary">Resposta correta</span>
+                    <select v-model="q.correct_answer" class="border rounded px-3 py-2">
+                      <option v-for="(opt, oi) in q.options" :key="'ec-'+oi" :value="opt">{{ opt || `Opção ${oi+1}` }}</option>
+                    </select>
+                  </label>
+                  <div class="text-xs text-red-600" v-if="(q.options || []).filter(o => (o||'').length > 0).length < 2">Mínimo 2 opções</div>
+                  <div class="text-xs text-red-600" v-if="q.correct_answer && !(q.options || []).includes(q.correct_answer)">Resposta correta deve ser uma das opções</div>
+                </div>
+
+                <div v-else-if="q.q_type === 'true_false'" class="grid gap-1">
+                  <span class="text-xs text-text-secondary">Resposta correta</span>
+                  <select v-model="q.correct_answer" class="border rounded px-3 py-2">
                     <option value="true">Verdadeiro</option>
                     <option value="false">Falso</option>
                   </select>
-                </label>
-              </div>
-
-              <div v-else-if="q.q_type === 'essay'" class="text-xs text-text-secondary mb-2">
-                Sem opções ou resposta correta automática. Correção manual.
-              </div>
-
-              <div v-else-if="q.q_type === 'ordering'" class="mb-2">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-sm text-text-secondary">Itens (a ordem final será o gabarito)</span>
-                  <button class="text-sm" @click="addOptionEdit(q)">+ item</button>
                 </div>
-                <div v-for="(opt, oi) in q.options" :key="'eord-'+oi" class="flex items-center gap-2 mb-1">
-                  <input v-model="q.options[oi]" class="border rounded px-2 py-1 flex-1" placeholder="Item" />
-                  <button class="text-xs text-red-600" @click="removeOptionEdit(q, oi)">remover</button>
+
+                <div v-else-if="q.q_type === 'essay'" class="text-xs text-text-secondary">
+                  Sem opções ou resposta correta automática. Correção manual.
                 </div>
-                <div class="text-xs text-text-secondary">O gabarito será salvo como a ordem atual dos itens.</div>
-                <div class="text-xs text-red-600 mt-1" v-if="(q.options || []).filter(o => (o||'').length > 0).length < 2">Mínimo 2 itens</div>
+
+                <div v-else-if="q.q_type === 'ordering'" class="grid gap-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-text-secondary">Itens (a ordem final será o gabarito)</span>
+                    <button class="text-sm" @click="addOptionEdit(q)">+ item</button>
+                  </div>
+                  <div v-for="(opt, oi) in q.options" :key="'eord-'+oi" class="flex items-center gap-2">
+                    <input v-model="q.options[oi]" class="border rounded px-3 py-2 flex-1" placeholder="Item" />
+                    <button class="text-xs text-red-600" @click="removeOptionEdit(q, oi)">remover</button>
+                  </div>
+                  <div class="text-xs text-text-secondary">O gabarito será salvo como a ordem atual dos itens.</div>
+                </div>
               </div>
             </div>
           </div>
+
           <div v-if="editError" class="p-2 rounded border border-red-300 bg-red-50 text-red-700">{{ editError }}</div>
         </div>
-        <div class="flex justify-end gap-2 px-4 pb-4">
+
+        <!-- Footer -->
+        <div class="flex justify-end gap-2 px-4 pb-4 border-t border-border bg-surface sticky bottom-0">
           <button class="px-3 py-2 rounded border border-border" @click="closeEdit">Cancelar</button>
           <button class="px-3 py-2 rounded bg-primary text-white hover:opacity-90 disabled:opacity-60" :disabled="editing || !isEditValid" @click="updateSimulado">
             {{ editing ? 'Salvando...' : 'Salvar' }}
@@ -347,7 +464,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { simuladoApi } from '../../composables/simuladoApi'
 import { adminSimuladoApi } from '../../composables/adminSimuladoApi'
 import ImprovedSimuladoModal from './ImprovedSimuladoModal.vue'
@@ -395,6 +512,34 @@ export default {
       } catch (_) { categories.value = [] }
     }
 
+    // Filtros e paginação (client-side)
+    const search = ref('')
+    const selectedType = ref('')
+    const selectedCategory = ref('')
+    const itemsPerPage = ref(10)
+    const currentPage = ref(1)
+
+    const filteredSimulados = computed(() => {
+      const term = (search.value || '').toLowerCase()
+      return (simulados.value || []).filter(s => {
+        const matchText = !term || (s.title || '').toLowerCase().includes(term) || (s.description || '').toLowerCase().includes(term)
+        const matchType = !selectedType.value || s.type === selectedType.value
+        const catId = s.category_id ?? s.categoryId ?? s.category?.id ?? null
+        const matchCat = !selectedCategory.value || String(catId) === String(selectedCategory.value)
+        return matchText && matchType && matchCat
+      })
+    })
+
+    const totalFiltered = computed(() => filteredSimulados.value.length)
+    const totalPages = computed(() => Math.max(1, Math.ceil(totalFiltered.value / (itemsPerPage.value || 10))))
+    const pageStart = computed(() => (currentPage.value - 1) * (itemsPerPage.value || 10))
+    const pageEnd = computed(() => Math.min(totalFiltered.value, pageStart.value + (itemsPerPage.value || 10)))
+    const paginatedSimulados = computed(() => filteredSimulados.value.slice(pageStart.value, pageEnd.value))
+
+    watch([search, selectedType, selectedCategory, itemsPerPage], () => {
+      currentPage.value = 1
+    })
+
     // assign modal state
     const assignTarget = ref(null)
     const assigning = ref(false)
@@ -423,6 +568,10 @@ export default {
         loading.value = false
       }
     }
+
+    onMounted(async () => {
+      await Promise.allSettled([loadSimulados(), loadCategories()])
+    })
 
     const loadAttempts = async (simuladoId) => {
       attemptsLoading.value = true
@@ -572,6 +721,7 @@ export default {
     const showEdit = ref(false)
     const editing = ref(false)
     const editError = ref(null)
+    const editTab = ref('geral')
     const formEdit = ref({
       id: null,
       title: '',
@@ -621,9 +771,11 @@ export default {
             correct_answer: q.correct_answer ?? q.correctAnswer ?? ''
           }))
         }
+        editTab.value = 'geral'
         showEdit.value = true
       } catch (e) {
         editError.value = e?.response?.data?.message || e.message || 'Erro ao carregar simulado'
+        editTab.value = 'geral'
         showEdit.value = true
       }
     }
@@ -768,10 +920,19 @@ export default {
     })
 
     return {
-      // estado
       loading,
       error,
       simulados,
+      search,
+      selectedType,
+      selectedCategory,
+      itemsPerPage,
+      currentPage,
+      totalPages,
+      pageStart,
+      pageEnd,
+      totalFiltered,
+      paginatedSimulados,
       expandedSimuladoId,
       attempts,
       attemptsLoading,
@@ -802,6 +963,7 @@ export default {
       removeOption,
       // edit modal
       showEdit,
+      editTab,
       formEdit,
       editing,
       editError,
@@ -823,6 +985,23 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.skeleton {
+  @apply bg-muted relative overflow-hidden rounded;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%);
+  animation: shimmer 1.2s infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+</style>
 
 <style scoped>
 .bg-muted\/50 { background-color: rgba(0,0,0,0.03); }

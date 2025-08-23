@@ -38,6 +38,18 @@ services:
       DB_DATABASE: app
       DB_USERNAME: app
       DB_PASSWORD: app
+      # Cloudflare R2/Stream (opcionais) - defina no ambiente do host ou num arquivo .env do Compose
+      # Base da API Cloudflare e conta (para Stream/R2)
+      CLOUDFLARE_API_BASE: ${CLOUDFLARE_API_BASE:-}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      # Token de API (NÃO COMITAR) - permissões para R2/Stream conforme necessidade
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      # Bucket/URL público do R2 (para servir media)
+      CLOUDFLARE_R2_BUCKET: ${CLOUDFLARE_R2_BUCKET:-}
+      CLOUDFLARE_R2_PUBLIC_BASE_URL: ${CLOUDFLARE_R2_PUBLIC_BASE_URL:-}
+      # Preferência de fonte de vídeo e base de embed do YouTube
+      VIDEO_SOURCE_PRIORITY: ${VIDEO_SOURCE_PRIORITY:-cloudflare,youtube,local}
+      YOUTUBE_EMBED_BASE: ${YOUTUBE_EMBED_BASE:-https://www.youtube.com/embed/}
     depends_on:
       mysql:
         condition: service_healthy

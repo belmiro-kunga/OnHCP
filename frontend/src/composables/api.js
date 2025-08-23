@@ -40,16 +40,24 @@ api.interceptors.response.use(
     return res
   },
   (err) => {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.error('[API][ERR]', {
+        status: err?.response?.status,
+        url: err?.config?.url,
+        method: err?.config?.method?.toUpperCase(),
+        data: err?.response?.data,
+        message: err?.message
+      })
+    }
+    
     if (err?.response?.status === 401) {
       // Optional: clear token and signal app
       try { localStorage.removeItem('token') } catch (_) {}
       // Could dispatch an event the app can listen to
       window.dispatchEvent(new CustomEvent('auth:unauthorized'))
     }
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.debug('[API][ERR]', err?.response?.status, err?.config?.url, err?.response?.data || err?.message)
-    }
+    
     return Promise.reject(err)
   }
 )

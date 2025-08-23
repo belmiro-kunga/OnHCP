@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'aws' => [
+        'mediaconvert' => [
+            'role_arn' => env('AWS_MEDIACONVERT_ROLE_ARN'),
+            'endpoint' => env('AWS_MEDIACONVERT_ENDPOINT'),
+        ],
+    ],
+
 ];

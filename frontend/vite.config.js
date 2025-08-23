@@ -12,6 +12,9 @@ export default defineConfig({
       'vue': 'vue/dist/vue.esm-bundler.js'
     }
   },
+  optimizeDeps: {
+    include: ['video.js', 'video.js/core']
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -24,10 +27,21 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://onhcp-nginx:80',
+        target: process.env.VITE_API_TARGET || 'http://nginx:80',
         changeOrigin: true,
-        // ensure path stays the same
-        // rewrite: (path) => path
+        secure: false,
+        logLevel: 'debug',
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        }
       }
     }
   }

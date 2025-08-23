@@ -17,6 +17,13 @@
         >
           Recarregar
         </button>
+        <button
+          class="px-3 py-2 rounded-md border hover:bg-muted"
+          @click="$router.push('/admin/dashboard/simulado')"
+          title="Voltar aos Simulados"
+        >
+          Simulados
+        </button>
       </div>
     </header>
 

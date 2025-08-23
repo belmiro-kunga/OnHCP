@@ -46,7 +46,6 @@ import AdminAudit from './modules/AdminAudit.vue'
 import AdminSecurity from './modules/AdminSecurity.vue'
 import AdminRoleMappings from './modules/AdminRoleMappings.vue'
 import AdminSettings from './modules/AdminSettings.vue'
-import AnalyticsDashboard from './modules/AnalyticsDashboard.vue'
 
 export default {
   name: 'AdminDashboard',
@@ -65,8 +64,7 @@ export default {
     AdminAudit,
     AdminSecurity,
     AdminRoleMappings,
-    AdminSettings,
-    AnalyticsDashboard
+    AdminSettings
   },
   setup() {
     const { activeTab, selectMenuItem } = useNavigation()
@@ -88,9 +86,7 @@ export default {
       audit: 'AdminAudit',
       security: 'AdminSecurity',
       'role-mappings': 'AdminRoleMappings',
-      settings: 'AdminSettings',
-      'simulado-categories': 'AdminSimuladoCategories',
-      analytics: 'AnalyticsDashboard'
+      settings: 'AdminSettings'
     }
 
     // Mapeamento de permissões por aba
@@ -106,8 +102,7 @@ export default {
       security: ['security.view'],
       'role-mappings': ['users.manage'],
       settings: ['admin.dashboard.view'],
-      'simulado-categories': ['admin.dashboard.view'],
-      analytics: ['admin.dashboard.view']
+      'simulado-categories': ['admin.dashboard.view']
     }
 
     const currentComponent = computed(() => {
@@ -125,6 +120,11 @@ export default {
       // Handle nested settings routes
       if (currentPath.startsWith('/admin/dashboard/settings')) {
         activeTab.value = 'settings'
+        return
+      }
+      // Handle nested simulado routes
+      if (currentPath.startsWith('/admin/dashboard/simulado/categories')) {
+        activeTab.value = 'simulado-categories'
         return
       }
 

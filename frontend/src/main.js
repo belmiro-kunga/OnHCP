@@ -36,6 +36,11 @@ const routes = [
     meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
   },
   {
+    path: '/admin/dashboard/simulado/categories',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+  },
+  {
     path: '/admin/dashboard/reports',
     component: AdminDashboard,
     meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
@@ -102,6 +107,11 @@ const routes = [
   },
   {
     path: '/admin/dashboard/settings/email',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
+  },
+  {
+    path: '/admin/dashboard/settings/video',
     component: AdminDashboard,
     meta: { requiresAuth: true, permissions: ['admin.dashboard.view'] }
   },

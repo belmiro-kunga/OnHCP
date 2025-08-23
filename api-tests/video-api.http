@@ -1,0 +1,33 @@
+### Video API tests for Cursos
+### Requires VS Code REST Client extension or compatible client
+### Set variables below before running
+
+@BASE_URL = http://localhost:8000/api
+@TOKEN = REPLACE_WITH_BEARER_TOKEN
+@COURSE_ID = 1
+
+### 1) Init video upload
+POST {{BASE_URL}}/admin/cursos/{{COURSE_ID}}/video/upload-init
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "contentType": "video/mp4"
+}
+
+### 2) Complete video upload
+POST {{BASE_URL}}/admin/cursos/{{COURSE_ID}}/video/upload-complete
+Authorization: Bearer {{TOKEN}}
+
+### 3) Get playback info
+GET {{BASE_URL}}/admin/cursos/{{COURSE_ID}}/video/playback
+Authorization: Bearer {{TOKEN}}
+
+### 4) Report playback progress
+POST {{BASE_URL}}/admin/cursos/{{COURSE_ID}}/video/progress
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "position": 42.5
+}
